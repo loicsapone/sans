@@ -38,6 +38,14 @@ The French vocabulary comes from [Marmiton](https://www.marmiton.org); the Engli
 
 The names found in a recipe are matched to the reference by a Symfony AI agent (`ai.agent.matcher`). It calls the `search_ingredients` tool once with all the names, which embeds them in a single request and runs one hybrid search per name (a `HybridQuery`: half on the words of the name, half on its meaning) to return the five best ingredients of each, then picks one result for each name or none. The words find "olive oil" or "stock cube" where the embedding alone drifts to a neighbour, the meaning finds "muscade" behind "noix de muscade". Only ingredients the tool actually returned are accepted, and their allergens come from the index, never from the model (about 3 seconds for a recipe).
 
+## Analysing a recipe
+
+```bash
+bin/console app:analyze https://example.com/a-recipe
+```
+
+The command fetches the page (public web pages only, with a size and time limit), reads the recipe from its schema.org data or, failing that, with the model, normalises the ingredient lines, matches them to the reference and prints the allergens it found with the ingredients responsible. It reports the stage that failed (`fetch`, `extract`, `normalise`, `match`) and the time each stage took.
+
 ## Quality
 
 ```bash

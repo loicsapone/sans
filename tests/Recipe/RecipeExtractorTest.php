@@ -35,6 +35,8 @@ final class RecipeExtractorTest extends TestCase
         $recipe = $this->extractor($agent)->extract($this->html('jsonld'));
 
         self::assertSame('Gratin dauphinois', $recipe->title);
+        self::assertSame(6, $recipe->servings);
+        self::assertSame(75, $recipe->minutes);
         self::assertSame(['1 kg de pommes de terre', '50 cl de crème fraîche', "1 gousse d'ail", 'une noix de beurre'], $recipe->ingredients);
         self::assertSame(['Éplucher et couper les pommes de terre.', 'Les enfourner 1 heure à 180 °C.'], $recipe->steps);
         self::assertSame([], $agent->asked);
@@ -45,8 +47,20 @@ final class RecipeExtractorTest extends TestCase
         $recipe = $this->extractor(new ExtractorAgent(new Recipe()))->extract($this->html('graph'));
 
         self::assertSame('Pancakes & maple syrup', $recipe->title);
+        self::assertSame(8, $recipe->servings);
+        self::assertSame(30, $recipe->minutes);
         self::assertSame(['2 cups flour'], $recipe->ingredients);
         self::assertSame(['Whisk the flour and the milk.', 'Fry in a hot pan.'], $recipe->steps);
+    }
+
+    public function testServingsAndTimeStayEmptyWhenThePageDoesNotSayOrSaysItBadly(): void
+    {
+        $html = '<script type="application/ld+json">{"@type":"Recipe","name":"Soup","recipeIngredient":["1 leek"],"totalTime":"soon"}</script>';
+
+        $recipe = $this->extractor(new ExtractorAgent(new Recipe()))->extract($html);
+
+        self::assertNull($recipe->servings);
+        self::assertNull($recipe->minutes);
     }
 
     public function testAsksTheModelWhenThePageHasNoSchemaOrgData(): void

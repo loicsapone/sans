@@ -46,7 +46,13 @@ final readonly class RecipeExtractor
             $node = $this->findRecipe($data);
             $ingredients = null === $node ? [] : $this->texts($node['recipeIngredient'] ?? []);
             if ([] !== $ingredients) {
-                return new Recipe($this->text($node['name'] ?? ''), $ingredients, $this->steps($node['recipeInstructions'] ?? []));
+                return new Recipe(
+                    $this->text($node['name'] ?? ''),
+                    $ingredients,
+                    $this->steps($node['recipeInstructions'] ?? []),
+                    $this->servings($node['recipeYield'] ?? null),
+                    $this->minutes($node['totalTime'] ?? null) ?? $this->sumMinutes($this->minutes($node['prepTime'] ?? null), $this->minutes($node['cookTime'] ?? null)),
+                );
             }
         }
 
@@ -73,6 +79,40 @@ final readonly class RecipeExtractor
         }
 
         return null;
+    }
+
+    private function servings(mixed $yield): ?int
+    {
+        foreach ((array) $yield as $value) {
+            if (1 === preg_match('/\d+/', (string) (\is_scalar($value) ? $value : ''), $matches)) {
+                return (int) $matches[0];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param mixed $duration an ISO 8601 duration such as PT1H15M
+     */
+    private function minutes(mixed $duration): ?int
+    {
+        if (!\is_string($duration)) {
+            return null;
+        }
+
+        try {
+            $interval = new \DateInterval($duration);
+        } catch (\Exception) {
+            return null;
+        }
+
+        return $interval->d * 1440 + $interval->h * 60 + $interval->i;
+    }
+
+    private function sumMinutes(?int $first, ?int $second): ?int
+    {
+        return null === $first && null === $second ? null : (int) $first + (int) $second;
     }
 
     /**
