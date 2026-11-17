@@ -1,0 +1,22 @@
+services:
+  php:
+    build: $PWD/docker/frankenphp
+    restart: on-failure
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-localhost, php:80}
+    volumes:
+      - ./:/srv/app
+    ports:
+      - "80:80"
+      - "443:443"
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.19
+    restart: on-failure
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-changeMe}
+    volumes:
+      - meilisearch_data:/meili_data
+
+volumes:
+  meilisearch_data:

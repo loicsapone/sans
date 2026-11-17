@@ -1,0 +1,50 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    security:
+        uses: IQ2i/.github/.github/workflows/php-security.yml@main
+        with:
+            php-version: '8.5'
+            php-extensions: intl, pdo_sqlite
+            dependency-versions: locked
+
+    cs:
+        uses: IQ2i/.github/.github/workflows/php-cs.yml@main
+        with:
+            php-version: '8.5'
+            php-extensions: intl, pdo_sqlite
+            dependency-versions: locked
+
+    sa:
+        uses: IQ2i/.github/.github/workflows/php-stan.yml@main
+        with:
+            php-version: '8.5'
+            php-extensions: intl, pdo_sqlite
+            dependency-versions: locked
+
+    app:
+        uses: IQ2i/.github/.github/workflows/symfony-app.yml@main
+        with:
+            php-version: '8.5'
+            php-extensions: intl, pdo_sqlite
+            dependency-versions: locked
+
+    tests:
+        uses: IQ2i/.github/.github/workflows/php-tests.yml@main
+        with:
+            php-versions: '["8.5"]'
+            php-extensions: intl, pdo_sqlite
+            dependency-versions: locked
