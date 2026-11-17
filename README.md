@@ -24,6 +24,12 @@ MISTRAL_API_KEY=...
 
 The app is served on https://localhost.
 
+## Reference data
+
+`resources/data/ingredients.csv` is the ingredient reference: a French and English vocabulary (name and plural in each language, parent) and, for each of the 14 EU allergens, whether it is present in every ordinary version (`always`) or only in some products (`depends`).
+
+The French vocabulary comes from [Marmiton](https://www.marmiton.org); the English names and the allergen columns were drafted with a language model and still need a human review.
+
 ## Quality
 
 ```bash
