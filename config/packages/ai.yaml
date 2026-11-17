@@ -12,3 +12,13 @@ ai:
                 api_key: '%env(MEILISEARCH_API_KEY)%'
                 index_name: ingredients
                 dimensions: 1024
+
+    vectorizer:
+        ingredients:
+            platform: ai.platform.mistral
+            model: '%env(MISTRAL_EMBEDDING_MODEL)%'
+
+    indexer:
+        ingredients:
+            vectorizer: ai.vectorizer.ingredients
+            store: ai.store.meilisearch.ingredients

@@ -31,9 +31,10 @@ php: ## Open a shell in the PHP container
 	$(PHP_CONT) sh
 
 ## —— App ————————————————————————————————————————————————————————————————————
-install: ## Install dependencies and create the SQLite schema
+install: ## Install dependencies, create the SQLite schema and build the vector index (needs MISTRAL_API_KEY)
 	$(COMPOSER) install
 	$(PHP) bin/console doctrine:schema:update --force
+	$(PHP) bin/console app:index --no-debug
 
 ## —— CI —————————————————————————————————————————————————————————————————————
 ci: static test ## Run static analysis and tests
