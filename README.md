@@ -32,7 +32,7 @@ The app is served on https://localhost. Paste the link of a recipe, or open `/?u
 
 `bin/console app:index` reads this file and builds the index through the Symfony AI Store component: one document per ingredient, embedded from its names, with its names and allergens stored in the document metadata, so that a search result is all the verdict needs.
 
-The French vocabulary comes from [Marmiton](https://www.marmiton.org); the English names and the allergen columns were drafted with a language model and still need a human review.
+The French vocabulary comes from [Marmiton](https://www.marmiton.org); the English names and the allergen columns were drafted with a language model and still need a human review. The rows from id 90001 are the free-from substitutes that swaps rely on (rice flour, soy milk, coconut oil...): they were written by hand, with their allergens, from the swaps the agent proposes most.
 
 ## Matching
 

@@ -27,12 +27,36 @@ final class ReferenceDataTest extends TestCase
         $rows = self::rows();
         $valid = ['', Certainty::Always->value, Certainty::Depends->value];
 
-        self::assertCount(2135, $rows);
+        self::assertCount(2173, $rows);
         foreach ($rows as $row) {
             foreach (Allergen::cases() as $allergen) {
                 self::assertContains($row[$allergen->value], $valid, $row['name']);
             }
         }
+    }
+
+    public function testIdsAreUniqueAndEveryParentExists(): void
+    {
+        $rows = self::rows();
+        $ids = array_column($rows, 'id');
+
+        self::assertSame($ids, array_unique($ids));
+        foreach ($rows as $row) {
+            self::assertTrue('' === $row['parent_id'] || \in_array($row['parent_id'], $ids, true), $row['name']);
+        }
+    }
+
+    public function testKnowsTheFreeFromSubstitutesAWriterAddedByHand(): void
+    {
+        $byName = array_column(self::rows(), null, 'name');
+
+        self::assertSame('', $byName['farine de riz']['gluten']);
+        self::assertSame('always', $byName['lait de soja']['soybeans']);
+        self::assertSame('', $byName['lait de soja']['gluten']);
+        self::assertSame('always', $byName["lait d'amande"]['tree-nuts']);
+        self::assertSame('', $byName['huile de coco']['tree-nuts']);
+        self::assertSame('depends', $byName['fromage végétal']['soybeans']);
+        self::assertSame('', $byName['lasagnes sans gluten']['gluten']);
     }
 
     public function testKnowsTheAllergensOfTheTrickyIngredients(): void
