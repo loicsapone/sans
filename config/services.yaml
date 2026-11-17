@@ -25,3 +25,11 @@ services:
     app.recipe_http_client:
         class: Symfony\Component\HttpClient\NoPrivateNetworkHttpClient
         arguments: ['@http_client']
+
+when@test:
+    services:
+        App\Tests\Support\RecipePages: ~
+
+        app.recipe_http_client:
+            class: Symfony\Component\HttpClient\MockHttpClient
+            arguments: ['@App\Tests\Support\RecipePages']

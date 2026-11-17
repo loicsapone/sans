@@ -1,0 +1,23 @@
+{# The prohibition mark that turns "cook without <allergen>" on and off. #}
+{% props label, pressed = false, busy = false, size = 'large' %}
+{% set px = 'small' == size ? 22 : 30 %}
+<button
+    {{ attributes.defaults({class: 'toggle toggle--' ~ size}) }}
+    type="button"
+    aria-pressed="{{ pressed ? 'true' : 'false' }}"
+    aria-label="Cook without {{ label|lower }}"
+    {% if busy %}aria-busy="true"{% endif %}
+>
+    <svg class="toggle__idle" width="{{ px }}" height="{{ px }}" viewBox="0 0 32 32" fill="none" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <circle class="toggle__mark" cx="16" cy="16" r="12"/>
+        <line class="toggle__mark" x1="7.5" y1="24.5" x2="24.5" y2="7.5"/>
+    </svg>
+    <svg class="toggle__on" width="{{ px }}" height="{{ px }}" viewBox="0 0 32 32" aria-hidden="true">
+        <circle class="toggle__disc" cx="16" cy="16" r="14"/>
+        <line class="toggle__bar" x1="8.5" y1="23.5" x2="23.5" y2="8.5" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+    <svg class="toggle__busy" width="{{ px }}" height="{{ px }}" viewBox="0 0 32 32" fill="none" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+        <circle class="toggle__ring" cx="16" cy="16" r="12"/>
+        <path class="toggle__arc" d="M16 4 A12 12 0 0 1 28 16"/>
+    </svg>
+</button>

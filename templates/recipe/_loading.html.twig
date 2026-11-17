@@ -1,0 +1,24 @@
+<div class="url-form url-form--static" aria-hidden="true">
+    <span class="url-form__label">Recipe link</span>
+    <span class="url-form__fake"></span>
+    <span class="url-form__button url-form__button--static">Read recipe</span>
+</div>
+
+<div class="recipe">
+    <div class="recipe__main" aria-hidden="true">
+        <div class="shimmer shimmer--line" style="width: 220px"></div>
+        <div class="shimmer shimmer--title"></div>
+        <div class="shimmer shimmer--title" style="width: 60%"></div>
+        <div class="shimmer shimmer--heading"></div>
+        {% for i in 1..6 %}
+            <div class="shimmer shimmer--row"></div>
+        {% endfor %}
+    </div>
+    <div class="card" aria-hidden="true">
+        <div class="shimmer shimmer--heading" style="width: 140px"></div>
+        {% for i in 1..6 %}
+            <div class="shimmer shimmer--row"></div>
+        {% endfor %}
+    </div>
+</div>
+<p class="recipe-page__status" role="status">Reading the recipe and checking its allergens…</p>

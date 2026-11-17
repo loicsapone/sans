@@ -26,29 +26,29 @@ final readonly class RecipeAnalyzer
     }
 
     /**
+     * The first half of an analysis: the recipe of a page, which is what the visitor can read while the rest is computed.
+     *
      * @throws AnalysisFailed with the stage that failed
      */
-    public function analyze(string $url): Analysis
+    public function read(string $url): Recipe
     {
-        $durations = [];
-        $lap = microtime(true);
-        $stage = static function (string $name) use (&$durations, &$lap): void {
-            $durations[$name] = microtime(true) - $lap;
-            $lap = microtime(true);
-        };
+        return $this->extractor->extract($this->fetcher->fetch($url));
+    }
 
-        $html = $this->fetcher->fetch($url);
-        $stage('fetch');
-
-        $recipe = $this->extractor->extract($html);
-        $stage('extract');
-
+    /**
+     * The second half: the ingredients of a recipe, and the allergens they carry.
+     *
+     * @throws AnalysisFailed with the stage that failed
+     */
+    public function analyse(Recipe $recipe): Analysis
+    {
+        $start = microtime(true);
         $lines = $this->normalize($recipe->ingredients);
         $names = array_values(array_unique(array_filter(array_merge(...array_map(static fn (IngredientLine $line): array => $line->names, $lines)))));
         if ([] === $names) {
             throw new AnalysisFailed('normalise', 'No ingredient could be read from the recipe.');
         }
-        $stage('normalise');
+        $normalised = microtime(true);
 
         try {
             $ingredients = $this->matcher->match($names);
@@ -56,9 +56,8 @@ final readonly class RecipeAnalyzer
             throw new AnalysisFailed('match', 'The ingredients could not be looked up.', $e);
         }
         $verdicts = $this->engine->evaluate($ingredients);
-        $stage('match');
 
-        return new Analysis($recipe, $lines, $ingredients, $verdicts, $durations);
+        return new Analysis($recipe, $lines, $ingredients, $verdicts, ['normalise' => $normalised - $start, 'match' => microtime(true) - $normalised]);
     }
 
     /**

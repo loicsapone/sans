@@ -1,0 +1,21 @@
+<form
+    class="url-form{{ hero ? ' url-form--hero' }}{{ error ? ' url-form--error' }}"
+    method="get"
+    action="{{ path('app_home') }}"
+    data-action="live#action:prevent"
+    data-live-action-param="read"
+>
+    <label class="url-form__label" for="url">Recipe link</label>
+    <input
+        class="url-form__input"
+        id="url"
+        name="url"
+        type="url"
+        placeholder="https://…"
+        value="{{ this.url }}"
+        data-model="norender|url"
+        required
+        {% if error %}aria-invalid="true" aria-describedby="url-error"{% endif %}
+    >
+    <button class="url-form__button" type="submit" data-loading="action(read)|addAttribute(disabled)">Read recipe</button>
+</form>

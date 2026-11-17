@@ -24,7 +24,10 @@ final readonly class AnalyzeCommand
         string $url,
     ): int {
         try {
-            $analysis = $this->analyzer->analyze($url);
+            $start = microtime(true);
+            $recipe = $this->analyzer->read($url);
+            $read = microtime(true) - $start;
+            $analysis = $this->analyzer->analyse($recipe);
         } catch (AnalysisFailed $e) {
             $io->error(\sprintf('Stage "%s" failed: %s', $e->stage, $e->getMessage()));
 
@@ -52,7 +55,7 @@ final readonly class AnalyzeCommand
         $io->writeln('Not detected: '.implode(', ', $notDetected));
 
         $io->newLine();
-        $io->writeln(implode(', ', array_map(static fn (string $stage, float $seconds): string => \sprintf('%s %.1f s', $stage, $seconds), array_keys($analysis->durations), $analysis->durations)).\sprintf(' (total %.1f s)', array_sum($analysis->durations)));
+        $io->writeln(\sprintf('read %.1f s, normalise %.1f s, match %.1f s', $read, $analysis->durations['normalise'], $analysis->durations['match']));
 
         return 0;
     }

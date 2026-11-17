@@ -1,0 +1,106 @@
+<div class="recipe">
+    <article class="recipe__main">
+        <p class="recipe__meta">{{ view.meta }}</p>
+        <h1 class="recipe__title">{{ view.title }}</h1>
+
+        <div class="recipe__heading">
+            <h2 class="recipe__section">Ingredients</h2>
+            {% if view.hasAdaptation %}
+                <div class="version" role="group" aria-label="Recipe version">
+                    <button class="version__button{{ view.showsOriginal ? '' : ' version__button--yours' }}" type="button" aria-pressed="{{ view.showsOriginal ? 'false' : 'true' }}" data-action="live#action" data-live-action-param="setVersion" data-live-version-param="yours">Your version</button>
+                    <button class="version__button{{ view.showsOriginal ? ' version__button--original' : '' }}" type="button" aria-pressed="{{ view.showsOriginal ? 'true' : 'false' }}" data-action="live#action" data-live-action-param="setVersion" data-live-version-param="original">Original</button>
+                </div>
+            {% endif %}
+        </div>
+        <ul class="ingredients">
+            {% for row in view.ingredients %}
+                {% if view.pending %}
+                    <li class="ingredient ingredient--pending">
+                        <span>{{ row.name }}</span>
+                        <span class="ingredient__note" aria-hidden="true"><span class="shimmer shimmer--note"></span></span>
+                    </li>
+                {% else %}
+                    <li class="ingredient">
+                        {% if row.swap %}
+                            <span class="ingredient__quantity ingredient__quantity--swapped">{{ row.swap.quantity }}</span>
+                            <div>
+                                <div class="ingredient__name ingredient__name--swapped">{{ row.swap.name }}</div>
+                                <div class="ingredient__why"><span class="ingredient__swap">Sans swap · </span>{{ row.swap.why }}</div>
+                            </div>
+                            <span class="ingredient__was">was {{ row.swap.was }}</span>
+                        {% else %}
+                            <span class="ingredient__quantity">{{ row.quantity }}</span>
+                            <span>{{ row.name }}</span>
+                            <span class="ingredient__note">{{ row.note }}</span>
+                        {% endif %}
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+
+        <h2 class="recipe__section recipe__section--method">Method</h2>
+        <ol class="method">
+            {% for step in view.steps %}
+                <li class="method__step">
+                    <span class="method__number">{{ step.number }}</span>
+                    <p>{{ step.text }}{% if step.adapted %}<span class="method__adapted">adapted</span>{% endif %}</p>
+                </li>
+            {% endfor %}
+        </ol>
+    </article>
+
+    <aside class="card">
+        <h2 class="card__title">Allergens</h2>
+        {% if view.pending %}
+            <p class="card__pending" role="status">Checking the 14 allergens…</p>
+            {% for i in 1..6 %}
+                <div class="shimmer shimmer--row" aria-hidden="true"></div>
+            {% endfor %}
+        {% else %}
+            <p class="card__hint">Tap <svg width="16" height="16" viewBox="0 0 32 32" fill="none" stroke="#6B7280" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="16" cy="16" r="12"/><line x1="7.5" y1="24.5" x2="24.5" y2="7.5"/></svg> to cook without it.</p>
+
+            {% if view.swapCount %}
+                <p class="card__summary">{{ view.swapCount }} ingredient{{ view.swapCount == 1 ? '' : 's' }} swapped, {{ view.adaptedStepCount }} step{{ view.adaptedStepCount == 1 ? '' : 's' }} adapted.</p>
+            {% endif %}
+            {% if view.unidentifiedCount %}
+                <p class="card__warning" role="status">{{ view.unidentifiedCount }} ingredient{{ view.unidentifiedCount == 1 ? '' : 's' }} couldn’t be identified, so some allergens may be missing.</p>
+            {% endif %}
+
+            <p class="card__group">Found in this recipe</p>
+            {% for row in view.found %}
+                <div class="allergen">
+                    <div class="allergen__text">
+                        {% if row.active %}
+                            <div class="allergen__label"><span class="allergen__sans">sans </span>{{ row.label|lower }}</div>
+                            <div class="allergen__status{{ row.swapped ? ' allergen__status--swapped' : '' }}">{{ row.status }}</div>
+                        {% else %}
+                            <div class="allergen__label">{{ row.label }}</div>
+                            <div class="allergen__status">{{ row.status }}</div>
+                        {% endif %}
+                    </div>
+                    <twig:AllergenToggle :label="row.label" :pressed="row.active" data-action="live#action" data-live-action-param="toggleAllergen" :data-live-allergen-param="row.allergen.value"/>
+                </div>
+            {% endfor %}
+
+            <p class="card__group card__group--second">Not detected</p>
+            {% for row in view.notDetected %}
+                <div class="allergen allergen--compact">
+                    <div class="allergen__text">
+                        {% if row.active %}
+                            <span class="allergen__plain"><span class="allergen__sans">sans </span>{{ row.label|lower }} <span class="allergen__free">· already free</span></span>
+                        {% else %}
+                            <span class="allergen__plain allergen__plain--idle">{{ row.label }}</span>
+                        {% endif %}
+                        {% if row.note %}<div class="allergen__note">{{ row.note }}</div>{% endif %}
+                    </div>
+                    <twig:AllergenToggle :label="row.label" :pressed="row.active" size="small" data-action="live#action" data-live-action-param="toggleAllergen" :data-live-allergen-param="row.allergen.value"/>
+                </div>
+            {% endfor %}
+
+            <button class="card__reset" type="button" data-action="live#action" data-live-action-param="reset">Back to the original recipe</button>
+
+        {% endif %}
+
+        <p class="card__disclaimer" id="how">Sans reads the recipe text, not product labels. If you cook for an allergy, always check the packaging.</p>
+    </aside>
+</div>

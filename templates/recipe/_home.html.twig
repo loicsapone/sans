@@ -1,0 +1,27 @@
+<section class="hero">
+    <h1 class="hero__title">Any recipe, <em>without</em> what you can’t eat.</h1>
+    <p class="hero__lead">Paste a recipe link. Sans lists its allergens and swaps the ingredients you need to avoid.</p>
+
+    {{ include('recipe/_form.html.twig', {hero: true, error: false}) }}
+    <p class="hero__help">Works with recipe pages that list their ingredients. No account needed.</p>
+</section>
+
+<section class="steps" id="how">
+    <div>
+        <p class="steps__number">1</p>
+        <h2 class="steps__title">Paste a link</h2>
+        <p class="steps__text">Sans reads the recipe from the page: ingredients, quantities and method.</p>
+    </div>
+    <div>
+        <p class="steps__number">2</p>
+        <h2 class="steps__title">See the allergens</h2>
+        <p class="steps__text">The 14 major allergens, and which ingredient each one comes from.</p>
+    </div>
+    <div>
+        <p class="steps__number">3</p>
+        <h2 class="steps__title">Tap <twig:AllergenToggle label="allergen" :pressed="true" size="small" class="toggle--inline" tabindex="-1" aria-hidden="true"/> to cook without</h2>
+        <p class="steps__text">Sans swaps the ingredient and rewrites the steps that change.</p>
+    </div>
+</section>
+
+<p class="disclaimer">Sans reads the recipe text, not product labels. If you cook for an allergy, always check the packaging.</p>

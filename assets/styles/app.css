@@ -1,3 +1,796 @@
+:root {
+    --accent: #0F766E;
+    --accent-hover: #115E59;
+    --accent-soft: #CCE7E4;
+    --ink: #111827;
+    --muted: #6B7280;
+    --muted-strong: #4B5563;
+    --border: #E5E7EB;
+    --divider: #F0F1F3;
+    --allergen: #9A3412;
+    --icon-idle: #9CA3AF;
+    --error: #B91C1C;
+    --font-serif: Fraunces, Georgia, serif;
+    --font-sans: Inter, system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
-    background-color: skyblue;
+    margin: 0;
+    background: #FFFFFF;
+    color: var(--ink);
+    font: 16px/1.55 var(--font-sans);
+}
+
+a {
+    color: var(--accent);
+}
+
+a:hover {
+    color: var(--accent-hover);
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px 64px;
+}
+
+@media (max-width: 600px) {
+    .page {
+        padding: 0 16px 48px;
+    }
+}
+
+/* Header and logo */
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 0 16px;
+}
+
+.header__home {
+    color: inherit;
+    text-decoration: none;
+}
+
+.header__link {
+    font-size: 14px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-serif);
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 40px;
+    letter-spacing: -0.02em;
+}
+
+/* One line tall: the word that left never shows, only the one that arrives */
+.logo__window {
+    display: block;
+    height: 40px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+    mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+}
+
+.logo__roll {
+    display: flex;
+    flex-direction: column;
+    margin-top: -40px;
+    color: var(--accent);
+    font-style: italic;
+    font-weight: 400;
+    animation: logo-roll 15s infinite;
+    animation-timing-function: cubic-bezier(.65, 0, .25, 1.15);
+}
+
+.logo__roll span {
+    height: 40px;
+    overflow: hidden;
+}
+
+@keyframes logo-roll {
+    0%, 13% { transform: translateY(0); }
+    16.66%, 29.66% { transform: translateY(-40px); }
+    33.33%, 46.33% { transform: translateY(-80px); }
+    50%, 63% { transform: translateY(-120px); }
+    66.66%, 79.66% { transform: translateY(-160px); }
+    83.33%, 96.33% { transform: translateY(-200px); }
+    100% { transform: translateY(-240px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .logo__roll {
+        animation: none;
+    }
+}
+
+/* Form */
+
+.url-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-align: left;
+}
+
+.url-form--error {
+    border-color: var(--error);
+}
+
+.url-form__label {
+    padding-left: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted-strong);
+}
+
+.url-form__input {
+    flex: 999 1 360px;
+    min-width: 0;
+    height: 44px;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: var(--ink);
+}
+
+.url-form__input:focus-visible {
+    outline: none;
+}
+
+.url-form:focus-within {
+    border-color: var(--accent);
+}
+
+.url-form__button {
+    flex: 0 0 auto;
+    height: 44px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #FFFFFF;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.url-form__button:hover {
+    background: var(--accent-hover);
+}
+
+.url-form__button:disabled {
+    opacity: .6;
+    cursor: progress;
+}
+
+.url-form--hero {
+    margin-top: 40px;
+    border-color: #D1D5DB;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, .05);
+}
+
+.url-form--hero .url-form__input {
+    flex-basis: 300px;
+    height: 52px;
+    font-size: 17px;
+}
+
+.url-form--hero .url-form__button {
+    height: 52px;
+    padding: 0 26px;
+    border-radius: 9px;
+}
+
+/* Home */
+
+.hero {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 96px 0 64px;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .hero {
+        padding: 48px 0 40px;
+    }
+}
+
+.hero__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(38px, 7vw, 60px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+
+.hero__title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+}
+
+.hero__lead {
+    margin: 20px auto 0;
+    max-width: 560px;
+    font-size: 18px;
+    color: var(--muted-strong);
+}
+
+.hero__help {
+    margin: 12px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 32px;
+    padding-top: 40px;
+    border-top: 1px solid var(--divider);
+}
+
+.steps__number {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-size: 30px;
+    line-height: 1;
+    color: var(--accent);
+}
+
+.steps__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 4px;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.steps__text {
+    margin: 0;
+    color: var(--muted-strong);
+}
+
+.disclaimer {
+    margin: 48px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+}
+
+/* The prohibition mark button: idle, active, busy */
+
+.toggle {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 22px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.toggle__mark {
+    stroke: var(--icon-idle);
+}
+
+.toggle--small .toggle__mark {
+    stroke: #C4C9D0;
+}
+
+.toggle__disc {
+    fill: var(--accent);
+}
+
+.toggle__bar {
+    stroke: #FFFFFF;
+}
+
+.toggle__idle,
+.toggle__on,
+.toggle__busy {
+    display: none;
+}
+
+.toggle[aria-pressed="false"] .toggle__idle,
+.toggle[aria-pressed="true"] .toggle__on {
+    display: block;
+}
+
+.toggle[aria-busy="true"] .toggle__idle,
+.toggle[aria-busy="true"] .toggle__on {
+    display: none;
+}
+
+.toggle[aria-busy="true"] .toggle__busy {
+    display: block;
+}
+
+.toggle__ring {
+    stroke: var(--accent-soft);
+}
+
+.toggle__arc {
+    stroke: var(--accent);
+    transform-origin: 16px 16px;
+    animation: toggle-spin 0.9s linear infinite;
+}
+
+@keyframes toggle-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toggle__arc {
+        animation-duration: 3s;
+    }
+}
+
+/* The page: loading, recipe, failure */
+
+.recipe-page__skeleton,
+.recipe-page__status {
+    display: none;
+}
+
+.recipe-page.is-loading .recipe-page__skeleton,
+.recipe-page.is-loading .recipe-page__status {
+    display: block;
+}
+
+.recipe-page.is-loading .recipe-page__content {
+    display: none;
+}
+
+.recipe-page__status {
+    margin: 24px 0 0;
+    text-align: center;
+    color: var(--muted-strong);
+}
+
+.url-form--static {
+    pointer-events: none;
+}
+
+.url-form__fake {
+    flex: 999 1 360px;
+    height: 44px;
+}
+
+.url-form__button--static {
+    display: inline-flex;
+    align-items: center;
+    opacity: .6;
+}
+
+.shimmer {
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--divider) 25%, #E3E5E8 50%, var(--divider) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.shimmer--line { height: 14px; margin-bottom: 14px; }
+.shimmer--title { height: 52px; margin-bottom: 10px; }
+.shimmer--heading { height: 28px; width: 180px; margin: 40px 0 12px; }
+.shimmer--row { height: 22px; margin: 18px 0; }
+
+.shimmer--note { display: inline-block; width: 44px; height: 12px; margin: 0; vertical-align: middle; }
+
+.card .shimmer--heading { margin-top: 0; }
+
+.card__pending {
+    margin: 20px 0 0;
+    font-size: 14px;
+    color: var(--muted-strong);
+}
+
+@keyframes shimmer {
+    to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shimmer {
+        animation: none;
+    }
+}
+
+.recipe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 56px;
+    align-items: flex-start;
+    margin-top: 48px;
+}
+
+@media (max-width: 600px) {
+    .recipe {
+        gap: 40px;
+        margin-top: 32px;
+    }
+}
+
+.recipe__main {
+    flex: 999 1 560px;
+    min-width: 0;
+}
+
+.recipe__meta {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.recipe__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(34px, 6vw, 56px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+}
+
+.recipe__heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 40px 0 8px;
+}
+
+.recipe__section {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 28px;
+}
+
+.recipe__section--method {
+    margin: 48px 0 8px;
+}
+
+.version {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+
+.version__button {
+    min-height: 36px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted-strong);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.version__button--yours {
+    background: var(--accent);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.version__button--original {
+    background: var(--ink);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.ingredients,
+.method {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ingredient {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--divider);
+}
+
+@media (max-width: 600px) {
+    .ingredient {
+        grid-template-columns: 76px minmax(0, 1fr) auto;
+        gap: 12px;
+    }
+}
+
+.ingredient--pending {
+    grid-template-columns: minmax(0, 1fr) 56px;
+}
+
+.ingredient__quantity {
+    color: var(--muted);
+}
+
+.ingredient__quantity--swapped {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.ingredient__note {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--allergen);
+    text-align: right;
+}
+
+.ingredient__name--swapped {
+    font-weight: 600;
+    text-decoration: underline dotted var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+}
+
+.ingredient__why {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--muted-strong);
+}
+
+.ingredient__swap {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.ingredient__was {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.method__step {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--divider);
+}
+
+.method__step p {
+    margin: 0;
+}
+
+.method__number {
+    font-family: var(--font-serif);
+    font-size: 26px;
+    line-height: 1;
+    color: var(--accent);
+}
+
+.method__adapted {
+    margin-left: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* The allergens card */
+
+.card {
+    flex: 1 1 340px;
+    min-width: 0;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.card__title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 26px;
+}
+
+.card__hint {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.card__summary {
+    margin: 8px 0 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+}
+
+.card__warning {
+    margin: 8px 0 0;
+    font-size: 14px;
+    color: var(--allergen);
+}
+
+.card__group {
+    margin: 20px 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.card__group--second {
+    margin-top: 24px;
+}
+
+.allergen {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--divider);
+}
+
+.allergen--compact {
+    min-height: 44px;
+    padding: 0;
+    border-bottom: 0;
+}
+
+.allergen__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.allergen__label {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.allergen__status {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.allergen__status--swapped,
+.allergen__free {
+    color: var(--accent);
+}
+
+.allergen__free {
+    font-size: 13px;
+}
+
+.allergen__sans {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+}
+
+.allergen__plain--idle {
+    color: var(--muted-strong);
+}
+
+.allergen__note {
+    font-size: 12px;
+    color: var(--allergen);
+}
+
+.card__reset {
+    min-height: 44px;
+    margin-top: 20px;
+    padding: 0 16px;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    background: #FFFFFF;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.card__reset:hover {
+    background: #F9FAFB;
+}
+
+.card__disclaimer {
+    margin: 24px 0 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--divider);
+    font-size: 13px;
+    color: var(--muted);
+}
+
+/* When the recipe could not be read */
+
+.failure {
+    max-width: 640px;
+    margin: 72px auto 0;
+    text-align: center;
+}
+
+.failure__title {
+    margin: 16px 0 0;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: clamp(28px, 5vw, 36px);
+    line-height: 1.15;
+}
+
+.failure__text {
+    margin: 12px 0 0;
+    color: var(--muted-strong);
+}
+
+.failure__tips {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 24px auto 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    color: #374151;
+}
+
+.failure__tips li {
+    display: flex;
+    gap: 10px;
+}
+
+.failure__tips span {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* The mark shown inline in the third step is only an illustration */
+
+.toggle.toggle--inline {
+    width: 20px;
+    height: 20px;
+    cursor: default;
+    pointer-events: none;
 }

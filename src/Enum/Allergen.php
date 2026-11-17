@@ -24,4 +24,24 @@ enum Allergen: string
     case Sulphites = 'sulphites';
     case Lupin = 'lupin';
     case Molluscs = 'molluscs';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Gluten => 'Gluten',
+            self::Crustaceans => 'Crustaceans',
+            self::Eggs => 'Eggs',
+            self::Fish => 'Fish',
+            self::Peanuts => 'Peanuts',
+            self::Soybeans => 'Soy',
+            self::Milk => 'Milk',
+            self::TreeNuts => 'Tree nuts',
+            self::Celery => 'Celery',
+            self::Mustard => 'Mustard',
+            self::Sesame => 'Sesame',
+            self::Sulphites => 'Sulphites',
+            self::Lupin => 'Lupin',
+            self::Molluscs => 'Molluscs',
+        };
+    }
 }

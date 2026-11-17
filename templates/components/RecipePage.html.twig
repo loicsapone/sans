@@ -1,0 +1,21 @@
+{% set view = this.view %}
+{% set failure = this.failure %}
+{# while the allergens are worked out, the browser asks for a new render right away: it is the one that does the work #}
+{% set attrs = {class: 'recipe-page', 'data-loading': 'action(read)|addClass(is-loading)'} %}
+<div {{ attributes.defaults(this.isAnalysing ? attrs|merge({'data-poll': 'delay(100)|$render'}) : attrs) }}>
+    <div class="recipe-page__skeleton">
+        {{ include('recipe/_loading.html.twig') }}
+    </div>
+
+    <div class="recipe-page__content">
+        {% if failure %}
+            {{ include('recipe/_form.html.twig', {hero: false, error: true}) }}
+            {{ include('recipe/_failure.html.twig') }}
+        {% elseif view %}
+            {{ include('recipe/_form.html.twig', {hero: false, error: false}) }}
+            {{ include('recipe/_recipe.html.twig') }}
+        {% else %}
+            {{ include('recipe/_home.html.twig') }}
+        {% endif %}
+    </div>
+</div>

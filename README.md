@@ -24,7 +24,7 @@ MISTRAL_API_KEY=...
 
 `make up` starts two containers: the app (FrankenPHP) and [Meilisearch](https://www.meilisearch.com), which holds the index of the ingredient reference. `make install` builds that index with Mistral embeddings (about 40 seconds, `MISTRAL_API_KEY` required).
 
-The app is served on https://localhost.
+The app is served on https://localhost. Paste the link of a recipe, or open `/?url=<recipe link>` to share an analysis: an address that was already analysed is shown at once (analyses are kept for a week).
 
 ## Reference data
 

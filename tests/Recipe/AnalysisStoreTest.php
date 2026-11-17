@@ -4,17 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Recipe;
 
-use App\Domain\AllergenVerdictEngine;
-use App\Domain\Ingredient;
 use App\Enum\Allergen;
 use App\Enum\Certainty;
 use App\Enum\Verdict;
 use App\Recipe\Analysis;
 use App\Recipe\AnalysisStore;
-use App\Recipe\IngredientLine;
-use App\Recipe\Recipe;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Tools\SchemaTool;
+use App\Tests\Support\Analyses;
+use App\Tests\Support\CreatesSchema;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
@@ -22,6 +18,8 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 final class AnalysisStoreTest extends KernelTestCase
 {
+    use CreatesSchema;
+
     private MockClock $clock;
     private AnalysisStore $store;
     private NormalizerInterface&DenormalizerInterface $serializer;
@@ -29,9 +27,7 @@ final class AnalysisStoreTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->getConfiguration()->setUseSchemaEditorApi(true);
-        (new SchemaTool($entityManager))->updateSchema($entityManager->getMetadataFactory()->getAllMetadata());
+        $entityManager = $this->createSchema();
 
         $this->clock = new MockClock('2026-11-17 12:00:00');
         $this->serializer = self::getContainer()->get('serializer');
@@ -40,21 +36,7 @@ final class AnalysisStoreTest extends KernelTestCase
 
     private function analysis(): Analysis
     {
-        $butter = new Ingredient(73, 'beurre', 'butter', [Allergen::Milk->value => Certainty::Always]);
-        $stock = new Ingredient(5, 'bouillon', 'stock', [Allergen::Celery->value => Certainty::Depends, Allergen::Gluten->value => Certainty::Depends]);
-        $ingredients = ['beurre' => $butter, 'bouillon' => $stock, 'zgougou' => null];
-
-        return new Analysis(
-            new Recipe('Gratin', ['100 g de beurre', '1 cube de bouillon', 'du zgougou'], ['Mélanger.', 'Cuire.'], 6, 75),
-            [
-                new IngredientLine('100 g de beurre', 'beurre', ['beurre'], 100.0, 'g'),
-                new IngredientLine('1 cube de bouillon', 'bouillon', ['bouillon'], 1.0, null, true),
-                new IngredientLine('du zgougou', 'zgougou', ['zgougou']),
-            ],
-            $ingredients,
-            (new AllergenVerdictEngine())->evaluate($ingredients),
-            ['fetch' => 0.2, 'extract' => 0.0, 'normalise' => 2.1, 'match' => 3.4],
-        );
+        return Analyses::gratin();
     }
 
     public function testAnAnalysisComesBackAsItWasSaved(): void
