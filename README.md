@@ -46,6 +46,10 @@ bin/console app:analyze https://example.com/a-recipe
 
 The command fetches the page (public web pages only, with a size and time limit), reads the recipe from its schema.org data or, failing that, with the model, normalises the ingredient lines, matches them to the reference and prints the allergens it found with the ingredients responsible. It reports the stage that failed (`fetch`, `extract`, `normalise`, `match`) and the time each stage took.
 
+## Cooking without an allergen
+
+Tapping the mark of an allergen asks an agent (`ai.agent.adapter`) for a swap for each ingredient line that always carries it, plus the steps rewritten to match. The agent has a `check_ingredients` tool to look up its own proposals before answering; that tool runs the matcher, so one agent calls another. Whatever the agent did with it, the model proposes and the server checks: the plain ingredients of each swap are looked up with the matcher, and a swap is kept only if all of them are in the reference and none carries (or may carry) an avoided allergen. Refused swaps are asked again with the reason, three attempts at most; a line without a safe swap says so. Ingredients that only *may* carry the allergen are not swapped, the page asks to read the label. Adaptations are stored by address and set of allergens. A swap takes 10 to 15 seconds, and how many lines succeed depends on how well the reference covers common substitutes.
+
 ## Quality
 
 ```bash

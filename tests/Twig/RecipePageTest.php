@@ -10,6 +10,7 @@ use App\Recipe\AdaptedStep;
 use App\Recipe\AnalysisStore;
 use App\Recipe\RecipeView;
 use App\Recipe\Swap;
+use App\Tests\Support\AdaptationAgent;
 use App\Tests\Support\Analyses;
 use App\Tests\Support\CreatesSchema;
 use App\Twig\Components\RecipePage;
@@ -27,6 +28,7 @@ final class RecipePageTest extends KernelTestCase
 
     protected function setUp(): void
     {
+        AdaptationAgent::$calls = 0;
         self::bootKernel();
         $this->createSchema();
         self::getContainer()->get(AnalysisStore::class)->save(self::URL, Analyses::gratin());
@@ -97,8 +99,44 @@ final class RecipePageTest extends KernelTestCase
         self::assertSame('sans milk', $crawler->filter('.allergen__sans')->ancestors()->first()->text());
         self::assertCount(1, $crawler->filter('.allergen__sans'));
 
+        $component->refresh();
         $component->call('toggleAllergen', ['allergen' => 'milk']);
         self::assertSame('false', $this->pressed($component->render()->crawler(), 'milk'));
+    }
+
+    public function testTappingTheMarkShowsTheSwapsBeingFoundThenTheAdaptedRecipe(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+
+        $component->call('toggleAllergen', ['allergen' => 'milk']);
+
+        $crawler = $component->render()->crawler();
+        self::assertSame('delay(100)|$render', $crawler->filter('.recipe-page')->attr('data-poll'));
+        self::assertSame('Finding a dairy-free swap…', $crawler->filter('.ingredient__finding')->text());
+        self::assertSame('Sans is updating the recipe…', $crawler->filter('.card__updating')->text());
+        self::assertSame('true', $crawler->filter('button[aria-label="Cook without milk"]')->attr('aria-busy'));
+        self::assertSame(0, AdaptationAgent::$calls);
+
+        $component->refresh();
+        $crawler = $component->render()->crawler();
+        self::assertSame('Olive oil', $crawler->filter('.ingredient__name--swapped')->text());
+        self::assertSame('adapted', $crawler->filter('.method__adapted')->text());
+        self::assertNull($crawler->filter('.recipe-page')->attr('data-poll'));
+        self::assertSame(1, AdaptationAgent::$calls);
+    }
+
+    public function testTheSameAllergensAreNotAdaptedTwice(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+        $component->call('toggleAllergen', ['allergen' => 'milk']);
+        $component->refresh();
+        $component->call('toggleAllergen', ['allergen' => 'milk']);
+        self::assertCount(0, $component->render()->crawler()->filter('.ingredient__swap'));
+
+        $component->call('toggleAllergen', ['allergen' => 'milk']);
+
+        self::assertSame('Olive oil', $component->render()->crawler()->filter('.ingredient__name--swapped')->text());
+        self::assertSame(1, AdaptationAgent::$calls);
     }
 
     public function testBackToTheOriginalRecipeClearsEveryChoice(): void

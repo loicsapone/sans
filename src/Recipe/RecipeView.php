@@ -24,15 +24,16 @@ final readonly class RecipeView
         private array $avoided = [],
         private ?Adaptation $adaptation = null,
         private bool $original = false,
+        private bool $adapting = false,
     ) {
     }
 
     /**
      * @param list<Allergen> $avoided
      */
-    public static function of(Analysis $analysis, string $url, array $avoided = [], ?Adaptation $adaptation = null, bool $original = false): self
+    public static function of(Analysis $analysis, string $url, array $avoided = [], ?Adaptation $adaptation = null, bool $original = false, bool $adapting = false): self
     {
-        return new self($analysis->recipe, $url, $analysis, $avoided, $adaptation, $original);
+        return new self($analysis->recipe, $url, $analysis, $avoided, $adaptation, $original, $adapting);
     }
 
     /**
@@ -84,12 +85,14 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, why: string, was: string}|null}>
+     * Each row says what to look for ("dairy-free") when its swap is being found, and whether no safe swap was found.
+     *
+     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, why: string, was: string}|null, pending: string|null, failed: bool}>
      */
     public function ingredients(): array
     {
         if (null === $this->analysis) {
-            return array_map(static fn (string $line): array => ['quantity' => '', 'name' => $line, 'note' => '', 'swap' => null], $this->recipe->ingredients);
+            return array_map(static fn (string $line): array => ['quantity' => '', 'name' => $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => false], $this->recipe->ingredients);
         }
 
         $analysis = $this->analysis;
@@ -97,6 +100,9 @@ final readonly class RecipeView
         foreach ($this->adapted()->swaps ?? [] as $swap) {
             $swaps[$swap->line] = $swap;
         }
+
+        $pending = $this->pendingLines();
+        $failed = $this->original ? [] : $this->adaptation->failed ?? [];
 
         $rows = [];
         foreach ($analysis->lines as $position => $line) {
@@ -109,6 +115,8 @@ final readonly class RecipeView
                 'name' => $name,
                 'note' => $this->note($found),
                 'swap' => null === $swap ? null : ['quantity' => $swap->quantity, 'name' => $swap->name, 'why' => $swap->why, 'was' => $line->names[0] ?? $name],
+                'pending' => isset($pending[$position]) ? implode(', ', array_map(static fn (Allergen $allergen): string => $allergen->freeLabel(), $pending[$position])) : null,
+                'failed' => \in_array($position, $failed, true),
             ];
         }
 
@@ -116,24 +124,42 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{number: int, text: string, adapted: bool}>
+     * While the swaps are being found, the steps that mention an ingredient to replace are marked as pending.
+     *
+     * @return list<array{number: int, text: string, adapted: bool, pending: bool}>
      */
     public function steps(): array
     {
         $steps = $this->adapted()->steps ?? array_map(static fn (string $text): AdaptedStep => new AdaptedStep($text), $this->recipe->steps);
+        $names = $this->namesOf($this->pendingLines());
 
         $rows = [];
         foreach ($steps as $i => $step) {
-            $rows[] = ['number' => $i + 1, 'text' => $step->text, 'adapted' => $step->adapted];
+            $rows[] = [
+                'number' => $i + 1,
+                'text' => $step->text,
+                'adapted' => $step->adapted,
+                'pending' => $this->adapting && [] !== array_filter($names, static fn (string $name): bool => false !== mb_stripos($step->text, $name)),
+            ];
         }
 
         return $rows;
     }
 
+    public function isAdapting(): bool
+    {
+        return $this->adapting && [] !== $this->pendingLines();
+    }
+
+    public function pendingStepCount(): int
+    {
+        return \count(array_filter($this->steps(), static fn (array $step): bool => $step['pending']));
+    }
+
     /**
      * The allergens found in the recipe, or that some of its ingredients may contain.
      *
-     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, status: string, note: string|null}>
+     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, note: string|null}>
      */
     public function found(): array
     {
@@ -141,7 +167,7 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, status: string, note: string|null}>
+     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, note: string|null}>
      */
     public function notDetected(): array
     {
@@ -181,7 +207,7 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, status: string, note: string|null}>
+     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, note: string|null}>
      */
     private function allergens(): array
     {
@@ -196,22 +222,33 @@ final readonly class RecipeView
             }
         }
 
+        $pending = $this->pendingLines();
+        $unresolved = [];
+        foreach ($this->adapted()->failed ?? [] as $position) {
+            foreach ($this->analysis->linesCarrying($this->avoided)[$position] ?? [] as $allergen) {
+                $unresolved[$allergen->value] = true;
+            }
+        }
+
         $verdicts = $this->analysis->verdicts;
         $rows = [];
         foreach (Allergen::cases() as $allergen) {
             $verdict = $verdicts[$allergen->value];
             $sources = implode(', ', $verdict->ingredients);
             $active = \in_array($allergen, $this->avoided, true);
-            $swapped = $active && isset($covered[$allergen->value]);
+            $swapped = $active && isset($covered[$allergen->value]) && !isset($unresolved[$allergen->value]);
+            $busy = $active && $this->adapting && [] !== $this->namesOf($pending, $allergen);
 
             $rows[] = [
                 'allergen' => $allergen,
                 'label' => $allergen->label(),
                 'active' => $active,
                 'swapped' => $swapped,
-                'status' => match ($verdict->verdict) {
-                    Verdict::Detected => $swapped ? 'Swapped out of '.$sources : 'In '.$sources,
-                    Verdict::DependsOnProduct => $swapped ? 'Swapped out of '.$sources : 'May be in '.$sources,
+                'busy' => $busy,
+                'status' => match (true) {
+                    $busy => 'Swapping '.implode(', ', \array_slice($this->namesOf($pending, $allergen), 0, 3)).'…',
+                    Verdict::Detected === $verdict->verdict => $swapped ? 'Swapped out of '.$sources : 'In '.$sources,
+                    Verdict::DependsOnProduct === $verdict->verdict => $active ? 'May be in '.$sources.' · check the label' : 'May be in '.$sources,
                     default => 'already free',
                 },
                 'note' => Verdict::Incomplete === $verdict->verdict ? 'Couldn’t identify: '.$sources : null,
@@ -219,6 +256,33 @@ final readonly class RecipeView
         }
 
         return $rows;
+    }
+
+    /**
+     * The lines whose swap is being found: those carrying an avoided allergen for sure.
+     *
+     * @return array<int, list<Allergen>>
+     */
+    private function pendingLines(): array
+    {
+        return $this->adapting && null !== $this->analysis ? $this->analysis->linesCarrying($this->avoided) : [];
+    }
+
+    /**
+     * @param array<int, list<Allergen>> $pending
+     *
+     * @return list<string> the first name of each line to swap, or only of those that carry the allergen
+     */
+    private function namesOf(array $pending, ?Allergen $allergen = null): array
+    {
+        $names = [];
+        foreach ($pending as $position => $allergens) {
+            if (null === $allergen || \in_array($allergen, $allergens, true)) {
+                $names[] = $this->analysis?->lines[$position]->names[0] ?? '';
+            }
+        }
+
+        return array_values(array_filter($names));
     }
 
     private function quantity(IngredientLine $line): string

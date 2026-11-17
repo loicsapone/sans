@@ -30,6 +30,17 @@ when@test:
     services:
         App\Tests\Support\RecipePages: ~
 
+        App\Tests\Support\AdaptationAgent: ~
+
+        app.test_matcher:
+            class: App\Matching\IngredientMatcher
+            arguments: ['@App\Tests\Support\MatchingAgent']
+
+        App\Tests\Support\MatchingAgent: ~
+
+        App\Recipe\RecipeAdapter:
+            arguments: ['@App\Tests\Support\AdaptationAgent', '@app.test_matcher']
+
         app.recipe_http_client:
             class: Symfony\Component\HttpClient\MockHttpClient
             arguments: ['@App\Tests\Support\RecipePages']

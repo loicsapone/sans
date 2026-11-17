@@ -794,3 +794,61 @@ a:hover {
     cursor: default;
     pointer-events: none;
 }
+
+/* While the swaps are being found */
+
+.recipe__heading--method {
+    justify-content: flex-start;
+    align-items: baseline;
+    margin: 48px 0 8px;
+}
+
+.recipe__heading--method .recipe__section--method {
+    margin: 0;
+}
+
+.recipe__progress,
+.ingredient__finding,
+.card__updating {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+}
+
+.card__updating {
+    margin: 8px 0 0;
+    font-size: 14px;
+}
+
+.ingredient--swapping {
+    align-items: center;
+}
+
+.ingredient__swapping {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ingredient__struck {
+    color: var(--muted);
+    text-decoration: line-through;
+}
+
+.shimmer--quantity { height: 18px; width: 56px; }
+.shimmer--swap { height: 18px; width: 70%; }
+.shimmer--short { width: 48%; }
+
+.ingredient__failed {
+    grid-column: 2 / -1;
+    font-size: 13px;
+    color: var(--allergen);
+}
+
+.method__step--pending .method__number {
+    color: var(--muted);
+}
+
+.method__shimmer {
+    padding-top: 4px;
+}

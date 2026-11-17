@@ -20,8 +20,16 @@
                         <span class="ingredient__note" aria-hidden="true"><span class="shimmer shimmer--note"></span></span>
                     </li>
                 {% else %}
-                    <li class="ingredient">
-                        {% if row.swap %}
+                    <li class="ingredient{{ row.pending ? ' ingredient--swapping' : '' }}"{% if row.pending %} aria-busy="true"{% endif %}>
+                        {% if row.pending %}
+                            <span class="shimmer shimmer--quantity" aria-hidden="true"></span>
+                            <div class="ingredient__swapping">
+                                <span class="ingredient__struck">{{ row.quantity }} {{ row.name }}</span>
+                                <span class="shimmer shimmer--swap" aria-hidden="true"></span>
+                                <span class="ingredient__finding">Finding a {{ row.pending }} swap…</span>
+                            </div>
+                            <span></span>
+                        {% elseif row.swap %}
                             <span class="ingredient__quantity ingredient__quantity--swapped">{{ row.swap.quantity }}</span>
                             <div>
                                 <div class="ingredient__name ingredient__name--swapped">{{ row.swap.name }}</div>
@@ -32,18 +40,26 @@
                             <span class="ingredient__quantity">{{ row.quantity }}</span>
                             <span>{{ row.name }}</span>
                             <span class="ingredient__note">{{ row.note }}</span>
+                            {% if row.failed %}<span class="ingredient__failed">Sans couldn’t find a safe swap for this one.</span>{% endif %}
                         {% endif %}
                     </li>
                 {% endif %}
             {% endfor %}
         </ul>
 
-        <h2 class="recipe__section recipe__section--method">Method</h2>
+        <div class="recipe__heading recipe__heading--method">
+            <h2 class="recipe__section recipe__section--method">Method</h2>
+            {% if view.isAdapting and view.pendingStepCount %}<span class="recipe__progress">Rewriting {{ view.pendingStepCount }} step{{ view.pendingStepCount == 1 ? '' : 's' }}…</span>{% endif %}
+        </div>
         <ol class="method">
             {% for step in view.steps %}
-                <li class="method__step">
+                <li class="method__step{{ step.pending ? ' method__step--pending' : '' }}"{% if step.pending %} aria-busy="true"{% endif %}>
                     <span class="method__number">{{ step.number }}</span>
+                    {% if step.pending %}
+                        <div class="method__shimmer" aria-hidden="true"><span class="shimmer shimmer--line"></span><span class="shimmer shimmer--line shimmer--short"></span></div>
+                    {% else %}
                     <p>{{ step.text }}{% if step.adapted %}<span class="method__adapted">adapted</span>{% endif %}</p>
+                    {% endif %}
                 </li>
             {% endfor %}
         </ol>
@@ -59,6 +75,11 @@
         {% else %}
             <p class="card__hint">Tap <svg width="16" height="16" viewBox="0 0 32 32" fill="none" stroke="#6B7280" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="16" cy="16" r="12"/><line x1="7.5" y1="24.5" x2="24.5" y2="7.5"/></svg> to cook without it.</p>
 
+            {% if view.isAdapting %}
+                <p class="card__updating" role="status">Sans is updating the recipe…</p>
+            {% elseif adaptationFailed|default(false) %}
+                <p class="card__warning" role="status">Sans couldn’t find swaps this time. Tap again to retry.</p>
+            {% endif %}
             {% if view.swapCount %}
                 <p class="card__summary">{{ view.swapCount }} ingredient{{ view.swapCount == 1 ? '' : 's' }} swapped, {{ view.adaptedStepCount }} step{{ view.adaptedStepCount == 1 ? '' : 's' }} adapted.</p>
             {% endif %}
@@ -78,7 +99,7 @@
                             <div class="allergen__status">{{ row.status }}</div>
                         {% endif %}
                     </div>
-                    <twig:AllergenToggle :label="row.label" :pressed="row.active" data-action="live#action" data-live-action-param="toggleAllergen" :data-live-allergen-param="row.allergen.value"/>
+                    <twig:AllergenToggle :label="row.label" :pressed="row.active" :busy="row.busy" data-action="live#action" data-live-action-param="toggleAllergen" :data-live-allergen-param="row.allergen.value"/>
                 </div>
             {% endfor %}
 
@@ -93,7 +114,7 @@
                         {% endif %}
                         {% if row.note %}<div class="allergen__note">{{ row.note }}</div>{% endif %}
                     </div>
-                    <twig:AllergenToggle :label="row.label" :pressed="row.active" size="small" data-action="live#action" data-live-action-param="toggleAllergen" :data-live-allergen-param="row.allergen.value"/>
+                    <twig:AllergenToggle :label="row.label" :pressed="row.active" :busy="row.busy" size="small" data-action="live#action" data-live-action-param="toggleAllergen" :data-live-allergen-param="row.allergen.value"/>
                 </div>
             {% endfor %}
 

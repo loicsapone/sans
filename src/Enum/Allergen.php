@@ -44,4 +44,27 @@ enum Allergen: string
             self::Molluscs => 'Molluscs',
         };
     }
+
+    /**
+     * What a swap for this allergen is called ("dairy-free").
+     */
+    public function freeLabel(): string
+    {
+        return match ($this) {
+            self::Gluten => 'gluten-free',
+            self::Crustaceans => 'crustacean-free',
+            self::Eggs => 'egg-free',
+            self::Fish => 'fish-free',
+            self::Peanuts => 'peanut-free',
+            self::Soybeans => 'soy-free',
+            self::Milk => 'dairy-free',
+            self::TreeNuts => 'nut-free',
+            self::Celery => 'celery-free',
+            self::Mustard => 'mustard-free',
+            self::Sesame => 'sesame-free',
+            self::Sulphites => 'sulphite-free',
+            self::Lupin => 'lupin-free',
+            self::Molluscs => 'mollusc-free',
+        };
+    }
 }

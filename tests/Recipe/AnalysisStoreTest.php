@@ -7,8 +7,11 @@ namespace App\Tests\Recipe;
 use App\Enum\Allergen;
 use App\Enum\Certainty;
 use App\Enum\Verdict;
+use App\Recipe\Adaptation;
+use App\Recipe\AdaptedStep;
 use App\Recipe\Analysis;
 use App\Recipe\AnalysisStore;
+use App\Recipe\Swap;
 use App\Tests\Support\Analyses;
 use App\Tests\Support\CreatesSchema;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -53,6 +56,20 @@ final class AnalysisStoreTest extends KernelTestCase
         self::assertNull($restored->ingredients['zgougou']);
         self::assertSame(Certainty::Always, $restored->ingredients['beurre']->certainties[Allergen::Milk->value]);
         self::assertSame(Verdict::Detected, $restored->verdicts['milk']->verdict);
+    }
+
+    public function testAnAdaptationComesBackForTheSameAllergensInAnyOrder(): void
+    {
+        $adaptation = new Adaptation([new Swap(0, [Allergen::Milk], '80 g', 'Olive oil', 'Why.')], [new AdaptedStep('Cuire.', true)], [2]);
+        $this->store->saveAdaptation('https://example.com/gratin', [Allergen::Milk, Allergen::Gluten], $adaptation);
+
+        $restored = $this->store->findAdaptation('https://example.com/gratin', [Allergen::Gluten, Allergen::Milk]);
+
+        self::assertInstanceOf(Adaptation::class, $restored);
+        self::assertSame($this->serializer->normalize($adaptation), $this->serializer->normalize($restored));
+        self::assertSame(Allergen::Milk, $restored->swaps[0]->allergens[0]);
+        self::assertNull($this->store->findAdaptation('https://example.com/gratin', [Allergen::Milk]));
+        self::assertNull($this->store->find('https://example.com/gratin'));
     }
 
     public function testUnknownAddressesAreNotFound(): void

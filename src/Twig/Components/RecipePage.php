@@ -9,8 +9,12 @@ use App\Recipe\Analysis;
 use App\Recipe\AnalysisFailed;
 use App\Recipe\AnalysisStore;
 use App\Recipe\Recipe;
+use App\Recipe\RecipeAdapter;
 use App\Recipe\RecipeAnalyzer;
 use App\Recipe\RecipeView;
+use Symfony\AI\Agent\Exception\ExceptionInterface as AgentException;
+use Symfony\AI\Platform\Exception\ExceptionInterface as PlatformException;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpException;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -37,12 +41,15 @@ final class RecipePage
     #[LiveProp]
     public string $version = 'yours';
 
-    /** @var 'analysing'|null set while the recipe is shown and its allergens are still being worked out */
+    /** @var 'analysing'|'adapting'|null set while the recipe is shown and its allergens or its swaps are still being worked out */
     #[LiveProp]
     public ?string $stage = null;
 
     #[LiveProp(useSerializerForHydration: true)]
     public ?Recipe $recipe = null;
+
+    #[LiveProp]
+    public bool $adaptationFailed = false;
 
     #[LiveProp]
     public ?string $failedStage = null;
@@ -53,10 +60,12 @@ final class RecipePage
     private ?Analysis $analysis = null;
     private bool $loaded = false;
     private bool $justRead = false;
+    private bool $justToggled = false;
 
     public function __construct(
         private readonly AnalysisStore $store,
         private readonly RecipeAnalyzer $analyzer,
+        private readonly RecipeAdapter $adapter,
     ) {
     }
 
@@ -69,6 +78,7 @@ final class RecipePage
         $this->url = mb_trim($this->url);
         $this->avoided = [];
         $this->version = 'yours';
+        $this->adaptationFailed = false;
         $this->stage = $this->recipe = $this->failedStage = $this->failedMessage = null;
         $this->analysis = null;
 
@@ -112,11 +122,38 @@ final class RecipePage
         return 'analysing' === $this->stage && null === $this->failedStage;
     }
 
+    /**
+     * Same trick once the visitor has chosen allergens: the swaps are found by the render that follows.
+     */
+    #[PreReRender]
+    public function adaptWhenReady(): void
+    {
+        if ($this->justToggled || !$this->isAdapting()) {
+            return;
+        }
+
+        $analysis = $this->analysis();
+        try {
+            if (null !== $analysis) {
+                $avoided = $this->avoidedAllergens();
+                $this->store->saveAdaptation($this->url, $avoided, $this->adapter->adapt($analysis, $avoided));
+            }
+        } catch (PlatformException|AgentException|HttpException) {
+            $this->adaptationFailed = true;
+        }
+        $this->stage = null;
+    }
+
+    public function isAdapting(): bool
+    {
+        return 'adapting' === $this->stage;
+    }
+
     #[LiveAction]
     public function toggleAllergen(#[LiveArg] string $allergen): void
     {
         $choice = Allergen::tryFrom($allergen);
-        if (null === $choice || $this->isAnalysing()) {
+        if (null === $choice || $this->isAnalysing() || $this->isAdapting()) {
             return;
         }
 
@@ -124,6 +161,13 @@ final class RecipePage
             ? array_values(array_diff($this->avoided, [$choice->value]))
             : [...$this->avoided, $choice->value];
         $this->version = 'yours';
+        $this->adaptationFailed = false;
+
+        $avoided = $this->avoidedAllergens();
+        if ([] !== $avoided && null !== $this->analysis() && null === $this->store->findAdaptation($this->url, $avoided)) {
+            $this->stage = 'adapting';
+            $this->justToggled = true;
+        }
     }
 
     #[LiveAction]
@@ -137,6 +181,8 @@ final class RecipePage
     {
         $this->avoided = [];
         $this->version = 'yours';
+        $this->adaptationFailed = false;
+        $this->stage = null;
     }
 
     public function view(): ?RecipeView
@@ -146,9 +192,10 @@ final class RecipePage
             return $this->isAnalysing() && null !== $this->recipe ? RecipeView::withoutAnalysis($this->recipe, $this->url) : null;
         }
 
-        $avoided = array_values(array_filter(array_map(Allergen::tryFrom(...), $this->avoided)));
+        $avoided = $this->avoidedAllergens();
+        $adaptation = [] === $avoided || $this->isAdapting() ? null : $this->store->findAdaptation($this->url, $avoided);
 
-        return RecipeView::of($analysis, $this->url, $avoided, null, 'original' === $this->version);
+        return RecipeView::of($analysis, $this->url, $avoided, $adaptation, 'original' === $this->version, $this->isAdapting());
     }
 
     /**
@@ -178,9 +225,17 @@ final class RecipePage
         };
     }
 
+    /**
+     * @return list<Allergen>
+     */
+    private function avoidedAllergens(): array
+    {
+        return array_values(array_filter(array_map(Allergen::tryFrom(...), $this->avoided)));
+    }
+
     private function analysis(): ?Analysis
     {
-        if (!$this->loaded && null === $this->failedStage && null === $this->stage && '' !== $this->url) {
+        if (!$this->loaded && null === $this->failedStage && 'analysing' !== $this->stage && '' !== $this->url) {
             $this->analysis = $this->store->find($this->url);
         }
         $this->loaded = true;

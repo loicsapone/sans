@@ -6,6 +6,8 @@ namespace App\Recipe;
 
 use App\Domain\AllergenVerdict;
 use App\Domain\Ingredient;
+use App\Enum\Allergen;
+use App\Enum\Certainty;
 
 final readonly class Analysis
 {
@@ -22,5 +24,30 @@ final readonly class Analysis
         public array $verdicts,
         public array $durations,
     ) {
+    }
+
+    /**
+     * The ingredient lines that always carry one of the allergens, with the allergens they carry.
+     * An ingredient that only may carry it is left out: only its label can tell.
+     *
+     * @param list<Allergen> $allergens
+     *
+     * @return array<int, list<Allergen>> by position of the line
+     */
+    public function linesCarrying(array $allergens): array
+    {
+        $found = [];
+        foreach ($this->lines as $position => $line) {
+            foreach ($allergens as $allergen) {
+                foreach ($line->names as $name) {
+                    if (Certainty::Always === ($this->ingredients[$name]?->certainties[$allergen->value] ?? null)) {
+                        $found[$position][] = $allergen;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $found;
     }
 }
