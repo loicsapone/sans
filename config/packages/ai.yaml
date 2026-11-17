@@ -4,6 +4,21 @@ ai:
             api_key: '%env(MISTRAL_API_KEY)%'
 
     agent:
+        matcher:
+            platform: ai.platform.mistral
+            model: '%env(MISTRAL_MODEL)%'
+            include_sources: true
+            prompt:
+                text: |
+                    You match ingredient names found in recipes (French or English) to the ingredients of a reference list.
+                    Call the search_ingredients tool once with all the requested names, then pick for each name the id of the
+                    result that is the same ingredient: a synonym, a plural, a translation, or the same product written with
+                    extra words ("tomates cerises" is cherry tomatoes). Answer null when no result is the same ingredient.
+                    A result that is only related or only shares a word is not a match: coconut milk is neither milk nor coconut,
+                    nutmeg is not a nut, a stock cube is not stock.
+                    Only use ids returned by the tool. Return one entry per requested name, with the name copied exactly as given.
+            tools:
+                - service: App\Matching\IngredientSearch
 
     store:
         meilisearch:
