@@ -2,7 +2,7 @@
     "name": "loicsapone/sans",
     "description": "Paste a recipe URL and see which of the 14 EU allergens it contains, with allergen-free adaptations.",
     "type": "project",
-    "license": "proprietary",
+    "license": "MIT",
     "minimum-stability": "beta",
     "prefer-stable": true,
     "require": {
