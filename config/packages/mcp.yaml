@@ -1,0 +1,9 @@
+mcp:
+    clients:
+        food:
+            request_timeout: 20
+            max_retries: 1
+            servers:
+                openfoodfacts:
+                    transport: http
+                    url: '%env(OPENFOODFACTS_MCP_URL)%'

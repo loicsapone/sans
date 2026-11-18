@@ -149,6 +149,13 @@ final class RecipeViewTest extends TestCase
         self::assertSame('No sure swap for this one: check the label.', $view->ingredients()[1]['failed']);
     }
 
+    public function testOnlyTheLinesThatMayCarryAnAvoidedAllergenAskForTheLabelsOfRealProducts(): void
+    {
+        self::assertSame([false, true, false], array_column($this->view([Allergen::Celery])->ingredients(), 'mayCarry'));
+        self::assertSame([false, false, false], array_column($this->view([Allergen::Fish])->ingredients(), 'mayCarry'));
+        self::assertSame(['celery'], $this->view([Allergen::Celery])->avoided());
+    }
+
     public function testAnIngredientThatOnlyMayCarryTheAllergenCanBeSwappedToo(): void
     {
         $view = $this->view([Allergen::Celery], new Adaptation([new Swap(1, [Allergen::Celery], '50 cl', 'Homemade stock', Role::Flavour)], [new AdaptedStep('Mélanger.'), new AdaptedStep('Cuire.')]));

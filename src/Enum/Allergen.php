@@ -46,6 +46,19 @@ enum Allergen: string
     }
 
     /**
+     * The tag of this allergen on Open Food Facts.
+     */
+    public function openFoodFactsTag(): string
+    {
+        return match ($this) {
+            self::Soybeans, self::Gluten, self::Crustaceans, self::Eggs, self::Fish, self::Peanuts, self::Milk, self::Celery, self::Mustard, self::Lupin, self::Molluscs => 'en:'.$this->value,
+            self::TreeNuts => 'en:nuts',
+            self::Sesame => 'en:sesame-seeds',
+            self::Sulphites => 'en:sulphur-dioxide-and-sulphites',
+        };
+    }
+
+    /**
      * What a swap for this allergen is called ("dairy-free").
      */
     public function freeLabel(): string

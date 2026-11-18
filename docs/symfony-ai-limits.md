@@ -73,6 +73,37 @@ The `adapter` agent checks its swaps with a tool that runs the `matcher` agent. 
 
 `ExecutionInterface` can stream a structured answer (`asStreamedObject()`, `Progress` updates on tool calls). Sans does not use it: a swap must not be shown before the server has checked it against the reference, so there is little to show early. The page renders twice instead (the recipe, then its allergens) with a Live component polling once.
 
+## MCP client
+
+Sans uses the tools of a remote MCP server (Open Food Facts) from an agent, with `symfony/mcp-bundle` 0.15 and `symfony/ai-mcp-tool`.
+
+### The Flex recipe sets up a server
+
+Installing the bundle to use its client adds an MCP *server* to the application: a `/mcp` route and a `servers.default` entry exposing every MCP service.
+
+- In Sans: `config/routes/mcp.yaml` removed, `config/packages/mcp.yaml` rewritten with only `clients`.
+
+### A PSR-17 implementation is needed, and nothing says so before the first call
+
+The HTTP transport needs PSR-17 factories. Composer installs the bundle without one, the container builds, and the first tool call fails with "No PSR-17 request factory found".
+
+- In Sans: `composer require nyholm/psr7`.
+- Fix: suggest it in `composer.json`, or fail when the container is built.
+
+### All the tools of the server, or none
+
+`tools: [{ mcp_server: food.openfoodfacts }]` gives the agent the four tools of the server. The only option is a `prefix` for their names: there is no way to keep one tool, so the prompt has to say "never call another tool".
+
+- Fix: an `only` (or `exclude`) list next to `prefix`.
+
+### Calling a tool without an agent works well
+
+The connection (`mcp.client.food.server.openfoodfacts`) can be injected and `callTool()` returns the `structuredContent` of the answer as an array. This is what lets Sans read the counts in PHP instead of trusting the model to copy them.
+
+### What is slow is the agent, not MCP
+
+A count takes 0.2 to 0.4 second. The agent that finds the categories takes 8 to 12 seconds for two ingredients (one taxonomy search per ingredient, sometimes a second one). `execution_strategy: fiber` did not make it faster in the two runs tried. Its choice also moves between runs: baking chocolate was put in "Chocolates", "Cocoa and its products" and "Dark chocolate bar for cooking".
+
 ## Platform
 
 ### Structured output and enums (no limit here)

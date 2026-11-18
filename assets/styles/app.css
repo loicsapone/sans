@@ -845,6 +845,12 @@ a:hover {
     color: var(--allergen);
 }
 
+.ingredient__label {
+    grid-column: 2 / -1;
+    font-size: 13px;
+    color: var(--muted);
+}
+
 .method__step--pending .method__number {
     color: var(--muted);
 }

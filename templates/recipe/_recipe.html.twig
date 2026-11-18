@@ -42,6 +42,9 @@
                             <span class="ingredient__note">{{ row.note }}</span>
                             {% if row.failed %}<span class="ingredient__failed">{{ row.failed }}</span>{% endif %}
                         {% endif %}
+                        {% if row.mayCarry %}
+                            <twig:ProductLabel loading="defer" loading-tag="span" class="ingredient__label" :url="view.url" :line="loop.index0" :avoided="view.avoided" :key="'label-' ~ loop.index0 ~ '-' ~ view.avoided|join('-')"/>
+                        {% endif %}
                     </li>
                 {% endif %}
             {% endfor %}

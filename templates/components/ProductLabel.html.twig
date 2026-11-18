@@ -1,0 +1,7 @@
+<span {{ attributes.defaults({class: 'ingredient__label'}) }}>
+    {% for sentence in this.sentences %}{{ sentence }} {% endfor %}
+</span>
+
+{% macro placeholder(props) %}
+    Reading the labels of real products on Open Food Facts…
+{% endmacro %}

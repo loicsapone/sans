@@ -41,6 +41,13 @@ when@test:
         App\Recipe\RecipeAdapter:
             arguments: ['@App\Tests\Support\AdaptationAgent', '@app.test_matcher']
 
+        # an agent that finds no category: Open Food Facts is never asked
+        App\Labels\ProductLabels:
+            arguments:
+                $agent: !service { class: Symfony\AI\Agent\MockAgent }
+                $openFoodFacts: '@mcp.client.food.server.openfoodfacts'
+                $cache: '@cache.app'
+
         app.recipe_http_client:
             class: Symfony\Component\HttpClient\MockHttpClient
             arguments: ['@App\Tests\Support\RecipePages']

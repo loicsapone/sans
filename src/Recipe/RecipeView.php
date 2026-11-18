@@ -44,6 +44,19 @@ final readonly class RecipeView
         return new self($recipe, $url);
     }
 
+    public function url(): string
+    {
+        return $this->url;
+    }
+
+    /**
+     * @return list<string> the values of the avoided allergens
+     */
+    public function avoided(): array
+    {
+        return array_column($this->avoided, 'value');
+    }
+
     public function isPending(): bool
     {
         return null === $this->analysis;
@@ -87,12 +100,12 @@ final readonly class RecipeView
     /**
      * Each row says what to look for ("dairy-free") when its swap is being found, and what to tell when no safe swap was found.
      *
-     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, role: string, was: string}|null, pending: string|null, failed: string|null}>
+     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, role: string, was: string}|null, pending: string|null, failed: string|null, mayCarry: bool}>
      */
     public function ingredients(): array
     {
         if (null === $this->analysis) {
-            return array_map(static fn (string $line): array => ['quantity' => '', 'name' => $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => null], $this->recipe->ingredients);
+            return array_map(static fn (string $line): array => ['quantity' => '', 'name' => $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => null, 'mayCarry' => false], $this->recipe->ingredients);
         }
 
         $analysis = $this->analysis;
@@ -123,6 +136,8 @@ final readonly class RecipeView
                 'swap' => null === $swap ? null : ['quantity' => $swap->quantity, 'name' => $swap->name, 'role' => $swap->role->label(), 'was' => $line->names[0] ?? $name],
                 'pending' => isset($pending[$position]) ? implode(', ', array_map(static fn (string $allergen): string => Allergen::from($allergen)->freeLabel(), array_keys($pending[$position]))) : null,
                 'failed' => $failed[$position] ?? null,
+                // only the label of a real product can tell: Open Food Facts is asked about them
+                'mayCarry' => \in_array(Certainty::Depends, $analysis->linesCarrying($this->avoided)[$position] ?? [], true),
             ];
         }
 

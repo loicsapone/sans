@@ -50,6 +50,14 @@ The command fetches the page (public web pages only, with a size and time limit)
 
 Tapping the mark of an allergen asks an agent (`ai.agent.adapter`) for a swap for each ingredient line that carries it, plus the steps rewritten to match. Each swap comes with the role the ingredient plays in the recipe (binder, fat, leavening...), an enum of the structured output. The agent has a `check_ingredients` tool to look up its own proposals before answering; that tool runs the matcher, so one agent calls another. Whatever the agent did with it, the model proposes and the server checks: the plain ingredients of each swap are looked up with the matcher, and a swap is kept only if all of them are in the reference and none carries (or may carry) an avoided allergen. Refused swaps are asked again with the reason, three attempts at most; a line without a safe swap says so. Ingredients that only *may* carry the allergen (a stock cube, a chocolate) are offered to the agent too, once: when it has no ingredient that is surely free of it, the page asks to read the label. Adaptations are stored by address and set of allergens. A swap takes 10 to 15 seconds, and how many lines succeed depends on how well the reference covers common substitutes.
 
+## Reading the labels
+
+For an ingredient that only *may* carry an avoided allergen, Sans is a client of the [Open Food Facts MCP server](https://github.com/cyanheads/openfoodfacts-mcp-server) to say what the labels of real products say: "On Open Food Facts, 469 of 992 products in “Stock cubes” declare celery."
+
+An agent (`ai.agent.labels`) gets the tools of the remote server (`mcp_server: food.openfoodfacts` in `config/packages/ai.yaml`, the connection is in `config/packages/mcp.yaml`) and finds the category of the ingredient in the Open Food Facts taxonomy. The counts are then asked to the server from PHP, through the same MCP connection: the model picks a category, it never writes a number. The sentence is a Live component of its own (`ProductLabel`) that the recipe page loads after itself (`loading="defer"`): the lookup starts when the allergen is tapped and runs next to the swaps, without holding them back. What was found is cached for a week.
+
+It is a help to choose a product, not a verdict: Open Food Facts is filled in by volunteers, many products have no allergen entered, and the category the agent picks can change from one run to the next. The server is a public one (`OPENFOODFACTS_MCP_URL`) with a small budget of searches; when it does not answer, the page only asks to read the label. Finding the categories takes about 10 seconds, sometimes 20; the adapted recipe does not wait for it.
+
 ## Symfony AI: what got in the way
 
 [docs/symfony-ai-limits.md](docs/symfony-ai-limits.md) lists the limits met with the Store, Agent and Platform components, with what Sans does about each and what a fix could look like.
