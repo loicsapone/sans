@@ -48,7 +48,11 @@ The command fetches the page (public web pages only, with a size and time limit)
 
 ## Cooking without an allergen
 
-Tapping the mark of an allergen asks an agent (`ai.agent.adapter`) for a swap for each ingredient line that always carries it, plus the steps rewritten to match. The agent has a `check_ingredients` tool to look up its own proposals before answering; that tool runs the matcher, so one agent calls another. Whatever the agent did with it, the model proposes and the server checks: the plain ingredients of each swap are looked up with the matcher, and a swap is kept only if all of them are in the reference and none carries (or may carry) an avoided allergen. Refused swaps are asked again with the reason, three attempts at most; a line without a safe swap says so. Ingredients that only *may* carry the allergen are not swapped, the page asks to read the label. Adaptations are stored by address and set of allergens. A swap takes 10 to 15 seconds, and how many lines succeed depends on how well the reference covers common substitutes.
+Tapping the mark of an allergen asks an agent (`ai.agent.adapter`) for a swap for each ingredient line that carries it, plus the steps rewritten to match. Each swap comes with the role the ingredient plays in the recipe (binder, fat, leavening...), an enum of the structured output. The agent has a `check_ingredients` tool to look up its own proposals before answering; that tool runs the matcher, so one agent calls another. Whatever the agent did with it, the model proposes and the server checks: the plain ingredients of each swap are looked up with the matcher, and a swap is kept only if all of them are in the reference and none carries (or may carry) an avoided allergen. Refused swaps are asked again with the reason, three attempts at most; a line without a safe swap says so. Ingredients that only *may* carry the allergen (a stock cube, a chocolate) are offered to the agent too, once: when it has no ingredient that is surely free of it, the page asks to read the label. Adaptations are stored by address and set of allergens. A swap takes 10 to 15 seconds, and how many lines succeed depends on how well the reference covers common substitutes.
+
+## Symfony AI: what got in the way
+
+[docs/symfony-ai-limits.md](docs/symfony-ai-limits.md) lists the limits met with the Store, Agent and Platform components, with what Sans does about each and what a fix could look like.
 
 ## Quality
 
