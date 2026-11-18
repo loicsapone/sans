@@ -14,6 +14,7 @@ use App\Recipe\Swap;
 use App\Tests\Support\AdaptationAgent;
 use App\Tests\Support\Analyses;
 use App\Tests\Support\CreatesSchema;
+use App\Tests\Support\RecipePages;
 use App\Twig\Components\RecipePage;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -53,13 +54,13 @@ final class RecipePageTest extends KernelTestCase
 
     public function testReadingANewAddressShowsTheRecipeBeforeItsAllergens(): void
     {
-        $component = $this->createLiveComponent(RecipePage::class, ['url' => 'https://recipes.test/gratin']);
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => RecipePages::GRATIN]);
 
         $component->call('read');
 
         $crawler = $component->render()->crawler();
         self::assertSame('Gratin dauphinois', $crawler->filter('h1')->text());
-        self::assertSame('recipes.test · Serves 6 · 1 h 15', $crawler->filter('.recipe__meta')->text());
+        self::assertSame('93.184.216.34 · Serves 6 · 1 h 15', $crawler->filter('.recipe__meta')->text());
         self::assertCount(4, $crawler->filter('li.ingredient--pending'));
         self::assertStringContainsString('1 kg de pommes de terre', $crawler->filter('li.ingredient--pending')->first()->text());
         self::assertCount(2, $crawler->filter('.method__step'));
@@ -70,7 +71,7 @@ final class RecipePageTest extends KernelTestCase
 
     public function testAnAddressThatDoesNotAnswerIsReported(): void
     {
-        $component = $this->createLiveComponent(RecipePage::class, ['url' => 'https://recipes.test/missing']);
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => 'https://93.184.216.34/missing']);
 
         $component->call('read');
 

@@ -22,10 +22,6 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
-    app.recipe_http_client:
-        class: Symfony\Component\HttpClient\NoPrivateNetworkHttpClient
-        arguments: ['@http_client']
-
     Symfony\AI\Store\Document\Loader\CsvLoader:
         arguments:
             $contentColumn: name
@@ -35,26 +31,9 @@ services:
 
 when@test:
     services:
-        App\Tests\Support\RecipePages: ~
+        _defaults:
+            autowire: true
+            autoconfigure: true
 
-        App\Tests\Support\AdaptationAgent: ~
-
-        app.test_matcher:
-            class: App\Matching\IngredientMatcher
-            arguments: ['@App\Tests\Support\MatchingAgent']
-
-        App\Tests\Support\MatchingAgent: ~
-
-        App\Recipe\RecipeAdapter:
-            arguments: ['@App\Tests\Support\AdaptationAgent', '@app.test_matcher']
-
-        # an agent that finds no category: Open Food Facts is never asked
-        App\Labels\ProductLabels:
-            arguments:
-                $agent: !service { class: Symfony\AI\Agent\MockAgent }
-                $openFoodFacts: '@mcp.client.food.server.openfoodfacts'
-                $cache: '@cache.app'
-
-        app.recipe_http_client:
-            class: Symfony\Component\HttpClient\MockHttpClient
-            arguments: ['@App\Tests\Support\RecipePages']
+        App\Tests\Support\:
+            resource: '../tests/Support/'

@@ -18,10 +18,12 @@ use Symfony\AI\Platform\Result\ObjectResult;
 use Symfony\AI\Platform\Vector\Vector;
 use Symfony\AI\Store\Document\Metadata;
 use Symfony\AI\Store\Document\VectorDocument;
+use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 
 /**
  * Stands for the matcher agent in the tests: knows olive oil (no allergen) and cream (milk), nothing else.
  */
+#[AsDecorator('ai.agent.matcher')]
 final class MatchingAgent implements AgentInterface
 {
     private const INGREDIENTS = [
