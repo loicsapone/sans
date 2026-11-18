@@ -27,9 +27,6 @@ final readonly class Analysis
     }
 
     /**
-     * The ingredient lines that carry one of the allergens, with how sure it is for each allergen:
-     * always when one of the ingredients of the line always carries it, depends when only its label can tell.
-     *
      * @param list<Allergen> $allergens
      *
      * @return array<int, array<string, Certainty>> by position of the line, then by allergen value

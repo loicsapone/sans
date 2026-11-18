@@ -14,9 +14,6 @@ use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Message\UserMessage;
 use Symfony\AI\Platform\Result\ObjectResult;
 
-/**
- * Stands for the labels agent in the tests: knows the Open Food Facts category of stock, of nothing else.
- */
 final class LabelsAgent implements AgentInterface
 {
     public function call(string|MessageBag|UserMessage $input, array $options = []): ExecutionInterface

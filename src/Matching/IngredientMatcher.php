@@ -10,10 +10,6 @@ use Symfony\AI\Agent\AgentInterface;
 use Symfony\AI\Agent\Bridge\SimilaritySearch\DocumentSource;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-/**
- * Finds the ingredient behind each name of a recipe: an agent searches the index with the
- * search_ingredients tool and picks one of the results (or none) for each name.
- */
 final readonly class IngredientMatcher
 {
     public function __construct(

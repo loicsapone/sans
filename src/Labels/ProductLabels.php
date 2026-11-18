@@ -13,11 +13,6 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
-/**
- * What the labels of real products say about an ingredient that only may carry an allergen: how many products of
- * its kind declare it on Open Food Facts. An agent finds the category of the ingredient with the tools of the
- * Open Food Facts MCP server; the numbers are read from the server here, the model never gets to write them.
- */
 final readonly class ProductLabels
 {
     public function __construct(

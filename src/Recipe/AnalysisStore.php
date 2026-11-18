@@ -11,10 +11,6 @@ use Psr\Clock\ClockInterface;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
-/**
- * Keeps the analysis of a recipe address for a week, and its adaptations for each set of avoided allergens,
- * so that opening the same recipe or asking for the same swaps again is instant.
- */
 final readonly class AnalysisStore
 {
     private const LIFETIME = '7 days';

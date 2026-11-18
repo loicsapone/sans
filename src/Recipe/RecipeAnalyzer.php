@@ -10,9 +10,6 @@ use Symfony\AI\Agent\AgentInterface;
 use Symfony\AI\Platform\Exception\ExceptionInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-/**
- * From the address of a recipe to the allergen verdicts: fetch, extract, normalise, match, evaluate.
- */
 final readonly class RecipeAnalyzer
 {
     public function __construct(
@@ -36,8 +33,6 @@ final readonly class RecipeAnalyzer
     }
 
     /**
-     * The second half: the ingredients of a recipe, and the allergens they carry.
-     *
      * @throws AnalysisFailed with the stage that failed
      */
     public function analyse(Recipe $recipe): Analysis

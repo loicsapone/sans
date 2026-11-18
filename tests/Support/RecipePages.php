@@ -8,9 +8,6 @@ use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
-/**
- * The web, in the test environment: one recipe page, nothing else.
- */
 #[AsDecorator('http_client')]
 final class RecipePages extends MockHttpClient
 {

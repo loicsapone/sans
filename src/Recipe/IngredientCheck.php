@@ -22,7 +22,6 @@ final readonly class IngredientCheck
     public function __invoke(array $names): array
     {
         $checked = [];
-        // the matcher is an agent too: it searches the index and picks the ingredient behind each name
         foreach ($this->matcher->match($names) as $name => $ingredient) {
             $allergens = [];
             foreach ($ingredient->certainties ?? [] as $allergen => $certainty) {

@@ -22,9 +22,6 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
-/**
- * The whole page: the form, then the recipe with its allergens (or the home page, or why the recipe could not be read).
- */
 #[AsLiveComponent]
 final class RecipePage
 {
@@ -69,9 +66,6 @@ final class RecipePage
     ) {
     }
 
-    /**
-     * Reads the page: the recipe is shown at once, its allergens follow (see analyseWhenReady()).
-     */
     #[LiveAction]
     public function read(): void
     {
@@ -199,8 +193,6 @@ final class RecipePage
     }
 
     /**
-     * What to tell the visitor when the recipe could not be read.
-     *
      * @return array{title: string, text: string, tips: list<string>}|null
      */
     public function failure(): ?array

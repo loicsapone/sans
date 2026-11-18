@@ -38,7 +38,6 @@ final class ProductLabelTest extends KernelTestCase
 
         $label = $component->render()->crawler()->filter('.ingredient__label');
 
-        // only the stock cube may contain celery
         self::assertCount(1, $label);
         self::assertSame('live:connect->live#$render', $label->attr('data-action'));
         self::assertSame('Reading the labels of real products on Open Food Facts…', $label->text());

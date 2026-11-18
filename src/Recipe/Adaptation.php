@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Recipe;
 
-/**
- * A recipe cooked without some allergens: the ingredients that were swapped and the steps as they now read.
- */
 final readonly class Adaptation
 {
     /**

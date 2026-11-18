@@ -15,9 +15,6 @@ use App\Recipe\Recipe;
 final class Analyses
 {
     /**
-     * A small gratin: butter (milk), a stock cube (celery, gluten and milk maybe) and an ingredient the reference does not know.
-     */
-    /**
      * @param list<string> $steps
      */
     public static function gratin(array $steps = ['Mélanger.', 'Cuire.']): Analysis

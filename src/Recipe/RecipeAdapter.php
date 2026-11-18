@@ -11,11 +11,6 @@ use App\Matching\IngredientMatcher;
 use Symfony\AI\Agent\AgentInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-/**
- * Rewrites a recipe without some allergens: an agent proposes the swaps, then each one is checked against the
- * reference (the replacement must be made of known ingredients that carry none of the avoided allergens).
- * The lines that only may carry an allergen are offered too: without a sure swap, the label still has to be read.
- */
 final readonly class RecipeAdapter
 {
     private const ATTEMPTS = 3;
@@ -102,8 +97,6 @@ final readonly class RecipeAdapter
     }
 
     /**
-     * The original steps, with those the agent changed replaced by their new text.
-     *
      * @param list<StepChange> $changes
      *
      * @return list<AdaptedStep>

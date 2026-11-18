@@ -9,9 +9,6 @@ use App\Enum\Allergen;
 use App\Enum\Certainty;
 use App\Enum\Verdict;
 
-/**
- * What the recipe page shows for an analysis, the allergens the visitor avoids and, when there is one, the adapted recipe.
- */
 final readonly class RecipeView
 {
     /**
@@ -36,9 +33,6 @@ final readonly class RecipeView
         return new self($analysis->recipe, $url, $analysis, $avoided, $adaptation, $original, $adapting);
     }
 
-    /**
-     * What is known of a recipe before its allergens are: the text of the page, nothing about allergens yet.
-     */
     public static function withoutAnalysis(Recipe $recipe, string $url): self
     {
         return new self($recipe, $url);
@@ -84,9 +78,6 @@ final readonly class RecipeView
         return implode(' · ', array_filter($parts));
     }
 
-    /**
-     * Whether the visitor can switch between the adapted recipe and the original one.
-     */
     public function hasAdaptation(): bool
     {
         return null !== $this->adaptation && [] !== $this->adaptation->swaps;
@@ -98,8 +89,6 @@ final readonly class RecipeView
     }
 
     /**
-     * Each row says what to look for ("dairy-free") when its swap is being found, and what to tell when no safe swap was found.
-     *
      * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, role: string, was: string}|null, pending: string|null, failed: string|null, mayCarry: bool}>
      */
     public function ingredients(): array
@@ -145,8 +134,6 @@ final readonly class RecipeView
     }
 
     /**
-     * While the swaps are being found, the steps that mention an ingredient to replace are marked as pending.
-     *
      * @return list<array{number: int, text: string, adapted: bool, pending: bool}>
      */
     public function steps(): array
@@ -178,8 +165,6 @@ final readonly class RecipeView
     }
 
     /**
-     * The allergens found in the recipe, or that some of its ingredients may contain.
-     *
      * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, note: string|null}>
      */
     public function found(): array
@@ -205,9 +190,6 @@ final readonly class RecipeView
         return \count(array_filter($this->adapted()->steps ?? [], static fn (AdaptedStep $step): bool => $step->adapted));
     }
 
-    /**
-     * How many ingredients of the recipe are not in the reference: no allergen can be ruled out for them.
-     */
     public function unidentifiedCount(): int
     {
         if (null === $this->analysis) {
@@ -279,8 +261,6 @@ final readonly class RecipeView
     }
 
     /**
-     * The lines whose swap is being found: those that carry or may carry an avoided allergen.
-     *
      * @return array<int, array<string, Certainty>>
      */
     private function pendingLines(): array
@@ -315,8 +295,6 @@ final readonly class RecipeView
     }
 
     /**
-     * The allergens an ingredient line contains, and those it may contain (marked with a question mark).
-     *
      * @param list<Ingredient|null> $found
      */
     private function note(array $found): string

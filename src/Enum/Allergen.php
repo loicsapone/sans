@@ -45,9 +45,6 @@ enum Allergen: string
         };
     }
 
-    /**
-     * The tag of this allergen on Open Food Facts.
-     */
     public function openFoodFactsTag(): string
     {
         return match ($this) {
@@ -58,9 +55,6 @@ enum Allergen: string
         };
     }
 
-    /**
-     * What a swap for this allergen is called ("dairy-free").
-     */
     public function freeLabel(): string
     {
         return match ($this) {

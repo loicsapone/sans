@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Enum;
 
-/**
- * What an ingredient does in a recipe, and so what its swap has to do in its place.
- */
 enum Role: string
 {
     case Binder = 'binder';

@@ -12,7 +12,6 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Under an ingredient line that only may carry an avoided allergen: what the labels of real products say.
  * Asking Open Food Facts is slow, so the recipe page loads this component after the rest (loading="defer").
  */
 #[AsLiveComponent]

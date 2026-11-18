@@ -111,9 +111,6 @@ final class RecipeExtractorTest extends TestCase
     }
 }
 
-/**
- * An agent that answers with the given recipe (or fails) and remembers what it was asked to read.
- */
 final class ExtractorAgent implements AgentInterface
 {
     /** @var list<string> */

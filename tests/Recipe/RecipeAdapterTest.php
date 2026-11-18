@@ -33,8 +33,6 @@ final class RecipeAdapterTest extends TestCase
     }
 
     /**
-     * An adapter whose agent gives the answers one after the other, the reference knowing olive oil and cream (milk).
-     *
      * @param list<AdaptationAnswer> $answers
      */
     private function adapter(array $answers): RecipeAdapter

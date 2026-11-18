@@ -17,9 +17,6 @@ use Symfony\AI\Platform\Message\UserMessage;
 use Symfony\AI\Platform\Result\ObjectResult;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
 
-/**
- * Stands for the adapter agent in the tests: swaps every line it is asked about for olive oil, and counts the calls.
- */
 #[AsDecorator('ai.agent.adapter')]
 final class AdaptationAgent implements AgentInterface
 {

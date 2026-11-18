@@ -25,9 +25,6 @@ use Symfony\AI\Store\Document\VectorDocument;
 
 final class IngredientMatcherTest extends TestCase
 {
-    /**
-     * An agent that answers with the given choice, after a search tool that returned the butter (id 1).
-     */
     private function matcher(?int $answer): IngredientMatcher
     {
         $butter = new VectorDocument('1', new Vector([1.0]), new Metadata(['name' => 'beurre', 'name_en' => 'butter', 'allergens' => ['milk' => 'always']]));

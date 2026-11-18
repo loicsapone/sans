@@ -10,9 +10,6 @@ use Symfony\AI\Agent\AgentInterface;
 use Symfony\AI\Platform\Exception\ExceptionInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-/**
- * Reads the recipe of a page: the schema.org data most recipe sites publish, or the model when there is none.
- */
 final readonly class RecipeExtractor
 {
     private const MAX_TEXT = 15000;
