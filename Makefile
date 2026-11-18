@@ -10,13 +10,13 @@ COMPOSER = $(PHP_CONT) composer
 
 .DEFAULT_GOAL = help
 
-.PHONY: help build up down logs php install ci static test
+.PHONY: help build up down logs php install index ci static test
 help:
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n"} /^[a-z\/\.A-Z0-9_-]+:.*?##/ { printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## —— Docker —————————————————————————————————————————————————————————————————
 build: ## Build the Docker images
-	@$(DOCKER_COMP) build --pull --no-cache
+	@$(DOCKER_COMP) build --pull
 
 up: ## Start the containers in detached mode
 	@$(DOCKER_COMP) up --detach
@@ -45,6 +45,7 @@ index: ## Rebuild the vector index from the ingredient CSV (needs MISTRAL_API_KE
 ci: static test ## Run static analysis and tests
 
 static: ## Run static analysis tools
+	$(PHP) bin/console cache:warmup --quiet
 	$(COMPOSER) static:run
 
 test: ## Run tests
