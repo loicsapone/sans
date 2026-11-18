@@ -27,12 +27,12 @@ final readonly class Analysis
     }
 
     /**
-     * The ingredient lines that always carry one of the allergens, with the allergens they carry.
-     * An ingredient that only may carry it is left out: only its label can tell.
+     * The ingredient lines that carry one of the allergens, with how sure it is for each allergen:
+     * always when one of the ingredients of the line always carries it, depends when only its label can tell.
      *
      * @param list<Allergen> $allergens
      *
-     * @return array<int, list<Allergen>> by position of the line
+     * @return array<int, array<string, Certainty>> by position of the line, then by allergen value
      */
     public function linesCarrying(array $allergens): array
     {
@@ -40,9 +40,9 @@ final readonly class Analysis
         foreach ($this->lines as $position => $line) {
             foreach ($allergens as $allergen) {
                 foreach ($line->names as $name) {
-                    if (Certainty::Always === ($this->ingredients[$name]?->certainties[$allergen->value] ?? null)) {
-                        $found[$position][] = $allergen;
-                        break;
+                    $certainty = $this->ingredients[$name]?->certainties[$allergen->value] ?? null;
+                    if (null !== $certainty && Certainty::Always !== ($found[$position][$allergen->value] ?? null)) {
+                        $found[$position][$allergen->value] = $certainty;
                     }
                 }
             }

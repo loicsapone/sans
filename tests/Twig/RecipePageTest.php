@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Twig;
 
 use App\Enum\Allergen;
+use App\Enum\Role;
 use App\Recipe\Adaptation;
 use App\Recipe\AdaptedStep;
 use App\Recipe\AnalysisStore;
@@ -186,7 +187,7 @@ final class RecipePageTest extends KernelTestCase
     public function testTheAdaptedRecipeShowsItsSwapsItsAdaptedStepsAndTheOriginalOnRequest(): void
     {
         $adaptation = new Adaptation(
-            [new Swap(0, [Allergen::Milk], '100 ml', 'Sunflower oil', 'A neutral oil keeps it moist without dairy.')],
+            [new Swap(0, [Allergen::Milk], '100 ml', 'Sunflower oil', Role::Fat)],
             [new AdaptedStep('Mélanger avec l’huile.', true), new AdaptedStep('Cuire.')],
         );
         $twig = self::getContainer()->get(Environment::class);

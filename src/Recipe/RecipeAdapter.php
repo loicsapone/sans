@@ -6,6 +6,7 @@ namespace App\Recipe;
 
 use App\Domain\Ingredient;
 use App\Enum\Allergen;
+use App\Enum\Certainty;
 use App\Matching\IngredientMatcher;
 use Symfony\AI\Agent\AgentInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -13,6 +14,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 /**
  * Rewrites a recipe without some allergens: an agent proposes the swaps, then each one is checked against the
  * reference (the replacement must be made of known ingredients that carry none of the avoided allergens).
+ * The lines that only may carry an allergen are offered too: without a sure swap, the label still has to be read.
  */
 final readonly class RecipeAdapter
 {
@@ -33,6 +35,7 @@ final readonly class RecipeAdapter
         $pending = $analysis->linesCarrying($avoided);
         $accepted = [];
         $refusals = [];
+        $leftToTheLabel = [];
         $steps = [];
 
         for ($attempt = 0; $attempt < self::ATTEMPTS && [] !== $pending; ++$attempt) {
@@ -52,15 +55,25 @@ final readonly class RecipeAdapter
                     $refusals[$swap->line] = $problem;
                     continue;
                 }
-                $accepted[$swap->line] = new Swap($swap->line, $pending[$swap->line], $swap->quantity, $swap->name, $swap->why);
+                $accepted[$swap->line] = new Swap($swap->line, array_map(Allergen::from(...), array_keys($pending[$swap->line])), $swap->quantity, $swap->name, $swap->role);
                 unset($pending[$swap->line], $refusals[$swap->line]);
             }
             $steps = $answer->steps;
+
+            // the agent may leave out a line that only may carry the allergen: it is not asked again
+            foreach ($pending as $position => $certainties) {
+                if ('no swap was proposed' === $refusals[$position] && !\in_array(Certainty::Always, $certainties, true)) {
+                    $leftToTheLabel[] = $position;
+                    unset($pending[$position], $refusals[$position]);
+                }
+            }
         }
 
         ksort($accepted);
+        $failed = [...array_keys($pending), ...$leftToTheLabel];
+        sort($failed);
 
-        return new Adaptation(array_values($accepted), $this->steps($analysis, $steps), array_keys($pending));
+        return new Adaptation(array_values($accepted), $this->steps($analysis, $steps), $failed);
     }
 
     /**
@@ -108,18 +121,21 @@ final readonly class RecipeAdapter
     }
 
     /**
-     * @param list<Allergen>             $avoided
-     * @param array<int, list<Allergen>> $pending
-     * @param array<int, Swap>           $accepted
-     * @param array<int, string>         $refusals
+     * @param list<Allergen>                       $avoided
+     * @param array<int, array<string, Certainty>> $pending
+     * @param array<int, Swap>                     $accepted
+     * @param array<int, string>                   $refusals
      */
     private function prompt(Analysis $analysis, array $avoided, array $pending, array $accepted, array $refusals): string
     {
         $labels = static fn (array $allergens): string => implode(', ', array_map(static fn (Allergen $allergen): string => $allergen->label(), $allergens));
 
         $text = 'Allergens to avoid: '.$labels($avoided)."\n\nIngredient lines to replace:\n";
-        foreach ($pending as $position => $allergens) {
-            $text .= $position.': '.$analysis->lines[$position]->raw.' (remove: '.$labels($allergens).')'.(isset($refusals[$position]) && 'no swap was proposed' !== $refusals[$position] ? ' - your last proposal was refused because '.$refusals[$position] : '')."\n";
+        foreach ($pending as $position => $certainties) {
+            $sure = array_map(Allergen::from(...), array_keys($certainties, Certainty::Always, true));
+            $maybe = array_map(Allergen::from(...), array_keys($certainties, Certainty::Depends, true));
+            $what = implode(', ', array_filter([[] === $sure ? '' : 'remove: '.$labels($sure), [] === $maybe ? '' : 'may contain: '.$labels($maybe)]));
+            $text .= $position.': '.$analysis->lines[$position]->raw.' ('.$what.')'.(isset($refusals[$position]) && 'no swap was proposed' !== $refusals[$position] ? ' - your last proposal was refused because '.$refusals[$position] : '')."\n";
         }
 
         if ([] !== $accepted) {

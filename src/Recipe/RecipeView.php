@@ -85,14 +85,14 @@ final readonly class RecipeView
     }
 
     /**
-     * Each row says what to look for ("dairy-free") when its swap is being found, and whether no safe swap was found.
+     * Each row says what to look for ("dairy-free") when its swap is being found, and what to tell when no safe swap was found.
      *
-     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, why: string, was: string}|null, pending: string|null, failed: bool}>
+     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, role: string, was: string}|null, pending: string|null, failed: string|null}>
      */
     public function ingredients(): array
     {
         if (null === $this->analysis) {
-            return array_map(static fn (string $line): array => ['quantity' => '', 'name' => $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => false], $this->recipe->ingredients);
+            return array_map(static fn (string $line): array => ['quantity' => '', 'name' => $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => null], $this->recipe->ingredients);
         }
 
         $analysis = $this->analysis;
@@ -102,7 +102,13 @@ final readonly class RecipeView
         }
 
         $pending = $this->pendingLines();
-        $failed = $this->original ? [] : $this->adaptation->failed ?? [];
+        $failed = [];
+        foreach ($this->adapted()->failed ?? [] as $position) {
+            // a line that only may carry the allergen is not a failure: its label still has the answer
+            $failed[$position] = \in_array(Certainty::Always, $analysis->linesCarrying($this->avoided)[$position] ?? [], true)
+                ? 'Sans couldn’t find a safe swap for this one.'
+                : 'No sure swap for this one: check the label.';
+        }
 
         $rows = [];
         foreach ($analysis->lines as $position => $line) {
@@ -114,9 +120,9 @@ final readonly class RecipeView
                 'quantity' => $this->quantity($line),
                 'name' => $name,
                 'note' => $this->note($found),
-                'swap' => null === $swap ? null : ['quantity' => $swap->quantity, 'name' => $swap->name, 'why' => $swap->why, 'was' => $line->names[0] ?? $name],
-                'pending' => isset($pending[$position]) ? implode(', ', array_map(static fn (Allergen $allergen): string => $allergen->freeLabel(), $pending[$position])) : null,
-                'failed' => \in_array($position, $failed, true),
+                'swap' => null === $swap ? null : ['quantity' => $swap->quantity, 'name' => $swap->name, 'role' => $swap->role->label(), 'was' => $line->names[0] ?? $name],
+                'pending' => isset($pending[$position]) ? implode(', ', array_map(static fn (string $allergen): string => Allergen::from($allergen)->freeLabel(), array_keys($pending[$position]))) : null,
+                'failed' => $failed[$position] ?? null,
             ];
         }
 
@@ -225,9 +231,7 @@ final readonly class RecipeView
         $pending = $this->pendingLines();
         $unresolved = [];
         foreach ($this->adapted()->failed ?? [] as $position) {
-            foreach ($this->analysis->linesCarrying($this->avoided)[$position] ?? [] as $allergen) {
-                $unresolved[$allergen->value] = true;
-            }
+            $unresolved += $this->analysis->linesCarrying($this->avoided)[$position] ?? [];
         }
 
         $verdicts = $this->analysis->verdicts;
@@ -247,7 +251,8 @@ final readonly class RecipeView
                 'busy' => $busy,
                 'status' => match (true) {
                     $busy => 'Swapping '.implode(', ', \array_slice($this->namesOf($pending, $allergen), 0, 3)).'…',
-                    Verdict::Detected === $verdict->verdict => $swapped ? 'Swapped out of '.$sources : 'In '.$sources,
+                    $swapped => 'Swapped out of '.$sources,
+                    Verdict::Detected === $verdict->verdict => 'In '.$sources,
                     Verdict::DependsOnProduct === $verdict->verdict => $active ? 'May be in '.$sources.' · check the label' : 'May be in '.$sources,
                     default => 'already free',
                 },
@@ -259,9 +264,9 @@ final readonly class RecipeView
     }
 
     /**
-     * The lines whose swap is being found: those carrying an avoided allergen for sure.
+     * The lines whose swap is being found: those that carry or may carry an avoided allergen.
      *
-     * @return array<int, list<Allergen>>
+     * @return array<int, array<string, Certainty>>
      */
     private function pendingLines(): array
     {
@@ -269,15 +274,15 @@ final readonly class RecipeView
     }
 
     /**
-     * @param array<int, list<Allergen>> $pending
+     * @param array<int, array<string, Certainty>> $pending
      *
      * @return list<string> the first name of each line to swap, or only of those that carry the allergen
      */
     private function namesOf(array $pending, ?Allergen $allergen = null): array
     {
         $names = [];
-        foreach ($pending as $position => $allergens) {
-            if (null === $allergen || \in_array($allergen, $allergens, true)) {
+        foreach ($pending as $position => $certainties) {
+            if (null === $allergen || isset($certainties[$allergen->value])) {
                 $names[] = $this->analysis?->lines[$position]->names[0] ?? '';
             }
         }

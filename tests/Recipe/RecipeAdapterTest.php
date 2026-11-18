@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Recipe;
 
 use App\Enum\Allergen;
+use App\Enum\Role;
 use App\Matching\IngredientMatcher;
 use App\Recipe\AdaptationAnswer;
 use App\Recipe\RecipeAdapter;
@@ -75,7 +76,7 @@ final class RecipeAdapterTest extends TestCase
     private function answer(array $ingredients): AdaptationAnswer
     {
         return new AdaptationAnswer(
-            [new SwapAnswer(0, '80 g', 'Olive oil', 'Fat that keeps the dish moist.', $ingredients)],
+            [new SwapAnswer(0, '80 g', 'Olive oil', Role::Fat, $ingredients)],
             [new StepChange(1, 'Mélanger avec l’huile.')],
         );
     }
@@ -86,11 +87,23 @@ final class RecipeAdapterTest extends TestCase
 
         self::assertCount(1, $adaptation->swaps);
         self::assertSame([0, [Allergen::Milk], 'Olive oil'], [$adaptation->swaps[0]->line, $adaptation->swaps[0]->allergens, $adaptation->swaps[0]->name]);
-        self::assertSame([], $adaptation->failed);
+        self::assertSame(Role::Fat, $adaptation->swaps[0]->role);
         self::assertTrue($adaptation->steps[0]->adapted);
         self::assertStringContainsString('0: 100 g de beurre (remove: Milk)', $this->prompt(0));
-        // the stock cube only may contain milk: the label has to be read, no swap is asked for it
-        self::assertStringNotContainsString('bouillon', explode('Steps of the method', $this->prompt(0))[0]);
+        // the stock cube only may contain milk: it is offered once, and left to its label when the agent has no swap for it
+        self::assertStringContainsString('1: 1 cube de bouillon (may contain: Milk)', $this->prompt(0));
+        self::assertCount(1, $this->prompts);
+        self::assertSame([1], $adaptation->failed);
+    }
+
+    public function testALineThatOnlyMayCarryTheAllergenIsSwappedWhenTheAgentHasASureIngredient(): void
+    {
+        $answer = new AdaptationAnswer([new SwapAnswer(1, '1 tbsp', 'Olive oil', Role::Flavour, ['olive oil'])]);
+
+        $adaptation = $this->adapter([$answer])->adapt(Analyses::gratin(), [Allergen::Celery]);
+
+        self::assertSame([1, [Allergen::Celery]], [$adaptation->swaps[0]->line, $adaptation->swaps[0]->allergens]);
+        self::assertSame([], $adaptation->failed);
     }
 
     public function testASwapMadeOfAnIngredientTheReferenceDoesNotKnowIsAskedAgain(): void
@@ -109,7 +122,7 @@ final class RecipeAdapterTest extends TestCase
         self::assertCount(3, $this->prompts);
         self::assertStringContainsString('cream contains or may contain Milk', $this->prompt(1));
         self::assertSame([], $adaptation->swaps);
-        self::assertSame([0], $adaptation->failed);
+        self::assertSame([0, 1], $adaptation->failed);
     }
 
     public function testASwapWithoutIngredientsIsRefused(): void
@@ -122,7 +135,7 @@ final class RecipeAdapterTest extends TestCase
 
     public function testOnlyTheStepsTheAgentChangedAreMarkedAndAnUnknownNumberIsIgnored(): void
     {
-        $answer = new AdaptationAnswer([new SwapAnswer(0, '80 g', 'Olive oil', 'Why.', ['olive oil'])], [new StepChange(2, 'Cuire avec l’huile.'), new StepChange(9, 'Ghost.')]);
+        $answer = new AdaptationAnswer([new SwapAnswer(0, '80 g', 'Olive oil', Role::Fat, ['olive oil'])], [new StepChange(2, 'Cuire avec l’huile.'), new StepChange(9, 'Ghost.')]);
 
         $adaptation = $this->adapter([$answer])->adapt(Analyses::gratin(), [Allergen::Milk]);
 
@@ -130,9 +143,9 @@ final class RecipeAdapterTest extends TestCase
         self::assertSame([false, true], array_map(static fn ($step): bool => $step->adapted, $adaptation->steps));
     }
 
-    public function testNothingIsAskedWhenNoLineCarriesTheAllergenForSure(): void
+    public function testNothingIsAskedWhenNoLineCarriesTheAllergen(): void
     {
-        $adaptation = $this->adapter([])->adapt(Analyses::gratin(), [Allergen::Celery]);
+        $adaptation = $this->adapter([])->adapt(Analyses::gratin(), [Allergen::Fish]);
 
         self::assertCount(0, $this->prompts);
         self::assertSame([], $adaptation->swaps);

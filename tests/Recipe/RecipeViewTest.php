@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Recipe;
 
 use App\Enum\Allergen;
+use App\Enum\Role;
 use App\Recipe\Adaptation;
 use App\Recipe\AdaptedStep;
 use App\Recipe\RecipeView;
@@ -25,7 +26,7 @@ final class RecipeViewTest extends TestCase
     private function adaptation(): Adaptation
     {
         return new Adaptation(
-            [new Swap(0, [Allergen::Milk], '100 ml', 'Sunflower oil', 'A neutral oil keeps it moist without dairy.')],
+            [new Swap(0, [Allergen::Milk], '100 ml', 'Sunflower oil', Role::Fat)],
             [new AdaptedStep('Mélanger avec l’huile.', true), new AdaptedStep('Cuire.')],
         );
     }
@@ -105,7 +106,7 @@ final class RecipeViewTest extends TestCase
         $view = $this->view([Allergen::Milk], $this->adaptation());
 
         self::assertTrue($view->hasAdaptation());
-        self::assertSame(['quantity' => '100 ml', 'name' => 'Sunflower oil', 'why' => 'A neutral oil keeps it moist without dairy.', 'was' => 'beurre'], $view->ingredients()[0]['swap']);
+        self::assertSame(['quantity' => '100 ml', 'name' => 'Sunflower oil', 'role' => 'brings the fat', 'was' => 'beurre'], $view->ingredients()[0]['swap']);
         self::assertNull($view->ingredients()[1]['swap']);
         self::assertSame([['number' => 1, 'text' => 'Mélanger avec l’huile.', 'adapted' => true, 'pending' => false], ['number' => 2, 'text' => 'Cuire.', 'adapted' => false, 'pending' => false]], $view->steps());
         self::assertSame(1, $view->swapCount());
@@ -121,20 +122,20 @@ final class RecipeViewTest extends TestCase
         $view = RecipeView::of(Analyses::gratin(['Faire fondre le beurre.', 'Cuire.']), 'https://example.com/gratin', [Allergen::Milk], adapting: true);
 
         self::assertTrue($view->isAdapting());
-        self::assertSame(['dairy-free', null, null], array_column($view->ingredients(), 'pending'));
+        self::assertSame(['dairy-free', 'dairy-free', null], array_column($view->ingredients(), 'pending'));
         self::assertSame([true, false], array_column($view->steps(), 'pending'));
         self::assertSame(1, $view->pendingStepCount());
 
         $milk = array_column($view->found(), null, 'label')['Milk'];
         self::assertTrue($milk['busy']);
-        self::assertSame('Swapping beurre…', $milk['status']);
+        self::assertSame('Swapping beurre, bouillon…', $milk['status']);
     }
 
     public function testALineWithoutASafeSwapIsReportedAndItsAllergenStaysFound(): void
     {
         $view = $this->view([Allergen::Milk], new Adaptation([], [new AdaptedStep('Mélanger.'), new AdaptedStep('Cuire.')], [0]));
 
-        self::assertTrue($view->ingredients()[0]['failed']);
+        self::assertSame('Sans couldn’t find a safe swap for this one.', $view->ingredients()[0]['failed']);
         $milk = array_column($view->found(), null, 'label')['Milk'];
         self::assertFalse($milk['swapped']);
         self::assertSame('In beurre', $milk['status']);
@@ -142,9 +143,18 @@ final class RecipeViewTest extends TestCase
 
     public function testAnIngredientThatOnlyMayCarryTheAllergenAsksToReadTheLabel(): void
     {
-        $celery = array_column($this->view([Allergen::Celery])->found(), null, 'label')['Celery'];
+        $view = $this->view([Allergen::Celery], new Adaptation([], [new AdaptedStep('Mélanger.'), new AdaptedStep('Cuire.')], [1]));
 
-        self::assertSame('May be in bouillon · check the label', $celery['status']);
+        self::assertSame('May be in bouillon · check the label', array_column($view->found(), null, 'label')['Celery']['status']);
+        self::assertSame('No sure swap for this one: check the label.', $view->ingredients()[1]['failed']);
+    }
+
+    public function testAnIngredientThatOnlyMayCarryTheAllergenCanBeSwappedToo(): void
+    {
+        $view = $this->view([Allergen::Celery], new Adaptation([new Swap(1, [Allergen::Celery], '50 cl', 'Homemade stock', Role::Flavour)], [new AdaptedStep('Mélanger.'), new AdaptedStep('Cuire.')]));
+
+        self::assertSame('Swapped out of bouillon', array_column($view->found(), null, 'label')['Celery']['status']);
+        self::assertSame('brings the flavour', $view->ingredients()[1]['swap']['role'] ?? null);
     }
 
     public function testTheOriginalRecipeIsKeptWhenTheVisitorAsksForIt(): void

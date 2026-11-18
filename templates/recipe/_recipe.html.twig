@@ -33,14 +33,14 @@
                             <span class="ingredient__quantity ingredient__quantity--swapped">{{ row.swap.quantity }}</span>
                             <div>
                                 <div class="ingredient__name ingredient__name--swapped">{{ row.swap.name }}</div>
-                                <div class="ingredient__why"><span class="ingredient__swap">Sans swap · </span>{{ row.swap.why }}</div>
+                                <div class="ingredient__why"><span class="ingredient__swap">Sans swap · </span>{{ row.swap.role }}</div>
                             </div>
                             <span class="ingredient__was">was {{ row.swap.was }}</span>
                         {% else %}
                             <span class="ingredient__quantity">{{ row.quantity }}</span>
                             <span>{{ row.name }}</span>
                             <span class="ingredient__note">{{ row.note }}</span>
-                            {% if row.failed %}<span class="ingredient__failed">Sans couldn’t find a safe swap for this one.</span>{% endif %}
+                            {% if row.failed %}<span class="ingredient__failed">{{ row.failed }}</span>{% endif %}
                         {% endif %}
                     </li>
                 {% endif %}

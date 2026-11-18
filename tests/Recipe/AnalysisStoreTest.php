@@ -6,6 +6,7 @@ namespace App\Tests\Recipe;
 
 use App\Enum\Allergen;
 use App\Enum\Certainty;
+use App\Enum\Role;
 use App\Enum\Verdict;
 use App\Recipe\Adaptation;
 use App\Recipe\AdaptedStep;
@@ -60,7 +61,7 @@ final class AnalysisStoreTest extends KernelTestCase
 
     public function testAnAdaptationComesBackForTheSameAllergensInAnyOrder(): void
     {
-        $adaptation = new Adaptation([new Swap(0, [Allergen::Milk], '80 g', 'Olive oil', 'Why.')], [new AdaptedStep('Cuire.', true)], [2]);
+        $adaptation = new Adaptation([new Swap(0, [Allergen::Milk], '80 g', 'Olive oil', Role::Fat)], [new AdaptedStep('Cuire.', true)], [2]);
         $this->store->saveAdaptation('https://example.com/gratin', [Allergen::Milk, Allergen::Gluten], $adaptation);
 
         $restored = $this->store->findAdaptation('https://example.com/gratin', [Allergen::Gluten, Allergen::Milk]);
