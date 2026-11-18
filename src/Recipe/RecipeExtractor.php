@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Recipe;
 
 use Dom\HTMLDocument;
+use Readability\Readability;
 use Symfony\AI\Agent\AgentInterface;
 use Symfony\AI\Platform\Exception\ExceptionInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -26,7 +27,7 @@ final readonly class RecipeExtractor
     {
         $document = HTMLDocument::createFromString($html, \LIBXML_NOERROR);
 
-        $recipe = $this->fromJsonLd($document) ?? $this->fromText($document);
+        $recipe = $this->fromJsonLd($document) ?? $this->fromText($html, $document);
         if ([] === $recipe->ingredients) {
             throw new AnalysisFailed('extract', 'No recipe was found on this page.');
         }
@@ -151,12 +152,19 @@ final readonly class RecipeExtractor
         return \is_string($value) ? mb_trim(html_entity_decode(strip_tags($value), \ENT_QUOTES | \ENT_HTML5)) : '';
     }
 
-    private function fromText(HTMLDocument $document): Recipe
+    private function fromText(string $html, HTMLDocument $document): Recipe
     {
-        foreach ($document->querySelectorAll('script, style, noscript, nav, header, footer, form') as $node) {
-            $node->remove();
+        // Tidy is left out: the text sent must not depend on an extension being there
+        $readability = new Readability($html, null, 'html5', false);
+        if ($readability->init()) {
+            $text = $readability->getTitle()->textContent.' '.$readability->getContent()->textContent;
+        } else {
+            foreach ($document->querySelectorAll('script, style, noscript, nav, header, footer, form') as $node) {
+                $node->remove();
+            }
+            $text = (string) $document->body?->textContent;
         }
-        $text = mb_substr((string) preg_replace('/\s+/u', ' ', (string) $document->body?->textContent), 0, self::MAX_TEXT);
+        $text = mb_substr(mb_trim((string) preg_replace('/\s+/u', ' ', $text)), 0, self::MAX_TEXT);
 
         try {
             $recipe = $this->agent->call($text, ['response_format' => Recipe::class])->getResult()->getContent();

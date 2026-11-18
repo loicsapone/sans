@@ -63,7 +63,25 @@ final class RecipeExtractorTest extends TestCase
         self::assertNull($recipe->minutes);
     }
 
-    public function testAsksTheModelWhenThePageHasNoSchemaOrgData(): void
+    public function testSendsOnlyTheReadablePartOfThePageToTheModel(): void
+    {
+        $agent = new ExtractorAgent(new Recipe('Crêpes de Mamie', ['250 g de farine', '3 œufs']));
+        $html = $this->html('blog');
+        $this->extractor($agent)->extract($html);
+
+        self::assertCount(1, $agent->asked);
+        $sent = $agent->asked[0];
+        self::assertStringStartsWith('Crêpes de Mamie', $sent);
+        foreach (['250 g de farine', '1 cuillère à soupe de rhum (facultatif)', 'Pour 15 crêpes environ', 'Cuire les crêpes une à une'] as $kept) {
+            self::assertStringContainsString($kept, $sent);
+        }
+        foreach (['cookies', 'Accueil', 'fleur d\'oranger', 'Gaufres aux noisettes', 'newsletter', 'Mentions légales', 'trackingScript'] as $noise) {
+            self::assertStringNotContainsString($noise, $sent);
+        }
+        self::assertLessThan(mb_strlen(strip_tags($html)) / 2, mb_strlen($sent));
+    }
+
+    public function testFallsBackToTheWholeTextWhenThePageIsTooShortToBeRead(): void
     {
         $agent = new ExtractorAgent(new Recipe('Crêpes de Mamie', ['250 g de farine', '3 œufs']));
         $recipe = $this->extractor($agent)->extract($this->html('no-schema'));

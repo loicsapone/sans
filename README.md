@@ -44,7 +44,7 @@ The names found in a recipe are matched to the reference by a Symfony AI agent (
 bin/console app:analyze https://example.com/a-recipe
 ```
 
-The command fetches the page (public web pages only, with a size and time limit), reads the recipe from its schema.org data or, failing that, with the model, normalises the ingredient lines, matches them to the reference and prints the allergens it found with the ingredients responsible. It reports the stage that failed (`fetch`, `extract`, `normalise`, `match`) and the time each stage took.
+The command fetches the page (public web pages only, with a size and time limit), reads the recipe from its schema.org data or, failing that, with the model (which is only sent the readable part of the page, found by [php-readability](https://github.com/j0k3r/php-readability)), normalises the ingredient lines, matches them to the reference and prints the allergens it found with the ingredients responsible. It reports the stage that failed (`fetch`, `extract`, `normalise`, `match`) and the time each stage took.
 
 ## Cooking without an allergen
 

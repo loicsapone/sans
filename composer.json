@@ -12,6 +12,7 @@
         "ext-iconv": "*",
         "doctrine/doctrine-bundle": "^3.4",
         "doctrine/orm": "^3.8",
+        "j0k3r/php-readability": "^2.0",
         "nyholm/psr7": "^1.8",
         "symfony/ai-agent": "^1.0@beta",
         "symfony/ai-bundle": "^1.0@beta",
