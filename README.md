@@ -22,7 +22,7 @@ Put your keys in `.env.local`:
 MISTRAL_API_KEY=...
 ```
 
-`make up` starts two containers: the app (FrankenPHP) and [Meilisearch](https://www.meilisearch.com), which holds the index of the ingredient reference. `make install` builds that index with Mistral embeddings (about 40 seconds, `MISTRAL_API_KEY` required).
+`make up` starts two containers: the app (FrankenPHP) and [Meilisearch](https://www.meilisearch.com), which holds the index of the ingredient reference. `make install` builds that index with Mistral embeddings (about a minute, `MISTRAL_API_KEY` required).
 
 The app is served on https://localhost. Paste the link of a recipe, or open `/?url=<recipe link>` to share an analysis: an address that was already analysed is shown at once (analyses are kept for a week).
 
@@ -30,7 +30,7 @@ The app is served on https://localhost. Paste the link of a recipe, or open `/?u
 
 `resources/data/ingredients.csv` is the ingredient reference: a French and English vocabulary (name and plural in each language, parent) and, for each of the 14 EU allergens, whether it is present in every ordinary version (`always`) or only in some products (`depends`).
 
-`bin/console app:index` reads this file and builds the index through the Symfony AI Store component: one document per ingredient, embedded from its names, with its names and allergens stored in the document metadata, so that a search result is all the verdict needs.
+`make index` builds the index from this file with the commands of the Symfony AI Store component (`ai:store:setup`, `ai:store:clear`, then `ai:store:index ingredients`): its `CsvLoader` reads the rows, and a transformer turns each of them into one document per ingredient, embedded from its names, with its names and allergens stored in the document metadata, so that a search result is all the verdict needs.
 
 The French vocabulary comes from [Marmiton](https://www.marmiton.org); the English names and the allergen columns were drafted with a language model and still need a human review. The rows from id 90001 are the free-from substitutes that swaps rely on (rice flour, soy milk, coconut oil...): they were written by hand, with their allergens, from the swaps the agent proposes most.
 

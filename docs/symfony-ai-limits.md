@@ -47,6 +47,29 @@ A recipe has 10 to 20 names to look up, and the store reads each response before
 - In Sans: one search per name, in sequence.
 - Fix: a `queryAll()` on the bridge, or lazy responses so that the HTTP client multiplexes them.
 
+## Store: loaders and indexer
+
+### `CsvLoader` reads one content column and keeps the metadata flat
+
+A document gets the text of a single column, the metadata columns are copied one key each (empty cells included), and `_source` and `_row_index` are always added. An ingredient is embedded from its four names and carries its allergens as one map, and the Meilisearch bridge stores every metadata key, so the loader's own keys would end up in the index.
+
+- In Sans: `CsvLoader` reads the file, and a transformer (`IngredientDocumentTransformer`) rebuilds the content and the metadata of each document.
+- Fix: several content columns with a separator, and an option to leave the loader's keys out.
+
+### The chunk size of an indexer cannot be configured
+
+`DocumentProcessor` embeds and stores the documents by chunks of `$options['chunk_size'] ?? 50`, and the option can only be given in PHP, to `index()`. `ai:store:index` calls `index()` without options and `ai.indexer.*` has no node for them. The indexer cannot be decorated to add it either: the command refuses anything that is not a `SourceIndexer` or a `ConfiguredSourceIndexer`, and both are final.
+
+- In Sans: the default is lived with, 44 embedding requests for the 2 173 ingredients where chunks of 200 would take 11 (53 seconds instead of 37). The alternative was a command of our own calling `index()` with the option, dropped to keep the native ones.
+- Fix: an `options` node under `ai.indexer.*`, or `--option` on the command as `ai:store:setup` has.
+
+### Nothing to hook a rebuild on
+
+`ai:store:index` adds to what the store already holds, and neither the command nor the indexer dispatches an event (the only events of the component are `PreQueryEvent` and `PostQueryEvent`, on the retriever), so the store cannot be set up and emptied from a listener.
+
+- In Sans: `make index` chains `ai:store:setup`, `ai:store:clear --force` and `ai:store:index`.
+- Fix: events around the indexing, or a `--fresh` option on the command.
+
 ## Store: Vektor
 
 Sans started on Vektor (no server to run) and moved to Meilisearch:

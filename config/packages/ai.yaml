@@ -108,5 +108,9 @@ ai:
 
     indexer:
         ingredients:
+            loader: Symfony\AI\Store\Document\Loader\CsvLoader
+            source: '%kernel.project_dir%/resources/data/ingredients.csv'
+            transformers:
+                - App\Matching\IngredientDocumentTransformer
             vectorizer: ai.vectorizer.ingredients
             store: ai.store.meilisearch.ingredients

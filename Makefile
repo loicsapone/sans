@@ -34,7 +34,12 @@ php: ## Open a shell in the PHP container
 install: ## Install dependencies, create the SQLite schema and build the vector index (needs MISTRAL_API_KEY)
 	$(COMPOSER) install
 	$(PHP) bin/console doctrine:schema:update --force
-	$(PHP) bin/console app:index --no-debug
+	$(MAKE) index
+
+index: ## Rebuild the vector index from the ingredient CSV (needs MISTRAL_API_KEY)
+	$(PHP) bin/console ai:store:setup ingredients --no-debug
+	$(PHP) bin/console ai:store:clear ingredients --force --no-debug
+	$(PHP) bin/console ai:store:index ingredients --no-debug
 
 ## —— CI —————————————————————————————————————————————————————————————————————
 ci: static test ## Run static analysis and tests

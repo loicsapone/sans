@@ -26,6 +26,13 @@ services:
         class: Symfony\Component\HttpClient\NoPrivateNetworkHttpClient
         arguments: ['@http_client']
 
+    Symfony\AI\Store\Document\Loader\CsvLoader:
+        arguments:
+            $contentColumn: name
+            $idColumn: id
+            $metadataColumns: [name, plural, name_en, plural_en, gluten, crustaceans, eggs, fish, peanuts, soybeans, milk, tree-nuts, celery, mustard, sesame, sulphites, lupin, molluscs]
+            $escape: ''
+
 when@test:
     services:
         App\Tests\Support\RecipePages: ~
