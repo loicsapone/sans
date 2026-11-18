@@ -7,14 +7,16 @@ services:
     volumes:
       - ./:/srv/app
     ports:
-      - "80:80"
-      - "443:443"
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
 
   meilisearch:
     image: getmeili/meilisearch:v1.19
     restart: on-failure
     environment:
       MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-changeMe}
+    ports:
+      - "7700"
     volumes:
       - meilisearch_data:/meili_data
 

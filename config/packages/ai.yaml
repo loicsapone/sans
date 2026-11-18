@@ -96,7 +96,7 @@ ai:
     store:
         meilisearch:
             ingredients:
-                endpoint: '%env(MEILISEARCH_HOST)%'
+                endpoint: 'http://%env(MEILISEARCH_HOST)%:%env(MEILISEARCH_PORT)%'
                 api_key: '%env(MEILISEARCH_API_KEY)%'
                 index_name: ingredients
                 dimensions: 1024
