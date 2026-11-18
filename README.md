@@ -2,35 +2,74 @@
 
 Paste the URL of a recipe: Sans extracts it, shows which of the 14 EU regulatory allergens it contains, and can propose an adapted version that avoids the allergens you switched off.
 
-Built for the Symfony AI & MCP Hackathon. Every allergen verdict comes from a deterministic lookup in PHP; the language model only extracts and normalises ingredients and proposes substitutions.
+Built for the [Symfony AI & MCP Hackathon](https://symfony.com/hackathon) (RAG, MCP, agents). Every allergen verdict comes from a deterministic lookup in PHP; the language model only extracts and normalises ingredients and proposes substitutions.
 
-## Requirements
-
-- Docker with Compose
-- A Mistral API key
+![Easy pancakes adapted without milk: the milk is swapped for a rice drink and the step that uses it is rewritten](docs/screenshot.png)
 
 ## Setup
+
+You need a [Mistral API key](https://console.mistral.ai) and Docker with Compose. Start with the key, the install needs it to build the index:
+
+```bash
+git clone https://github.com/loicsapone/sans.git && cd sans
+echo "MISTRAL_API_KEY=your-key" > .env.local
+```
+
+Then pick one of the two ways to run the app. Both build the index of the ingredient reference with Mistral embeddings, which takes about a minute.
+
+### With the Symfony CLI
+
+Needs PHP 8.5, Composer and the [Symfony CLI](https://symfony.com/download). PHP runs on your machine and only [Meilisearch](https://www.meilisearch.com), which holds the index, runs in Docker: the CLI finds its port by itself and serves the app on a free port.
+
+```bash
+composer install
+docker compose up -d meilisearch
+symfony console doctrine:schema:update --force
+symfony console ai:store:setup ingredients --no-debug
+symfony console ai:store:index ingredients --no-debug
+symfony server:start -d
+```
+
+The last command prints the address of the app (http://127.0.0.1:8000 when the port is free).
+
+### With Docker only
+
+Nothing to install but Docker: the app runs in a FrankenPHP container.
 
 ```bash
 make build up
 make install
 ```
 
-Put your keys in `.env.local`:
+The app is served on https://localhost, with a local certificate your browser asks you to accept. When ports 80 and 443 are taken, choose others (`HTTP_PORT=8080 HTTPS_PORT=8443 make up`) and open https://localhost:8443.
 
-```dotenv
-MISTRAL_API_KEY=...
-```
+### Try it
 
-`make up` starts two containers: the app (FrankenPHP) and [Meilisearch](https://www.meilisearch.com), which holds the index of the ingredient reference. `make install` builds that index with Mistral embeddings (about a minute, `MISTRAL_API_KEY` required).
+Paste the link of a recipe, in French or in English, for example:
 
-The app is served on https://localhost. Paste the link of a recipe, or open `/?url=<recipe link>` to share an analysis: an address that was already analysed is shown at once (analyses are kept for a week).
+- https://www.bbcgoodfood.com/recipes/easy-pancakes
+- https://www.marmiton.org/recettes/recette_pate-a-crepes_12372.aspx
+- https://www.marmiton.org/recettes/recette_gratin-dauphinois-tres-facile_58956.aspx
+
+Then tap the mark of an allergen to cook without it. `/?url=<recipe link>` shares an analysis: an address that was already analysed is shown at once (analyses are kept for a week).
+
+## What Symfony AI unlocked
+
+Sans is five agents, one vector store and one MCP connection, and almost all of it is configuration (`config/packages/ai.yaml`). What made the difference:
+
+- **Typed answers.** Every agent answers with a PHP class given as `response_format` (`IngredientLines`, `MatchChoices`, `AdaptationAnswer`...). A backed enum in that class (`Role`) becomes an `enum` of the JSON schema and comes back as the enum case. There is no JSON to parse or to validate by hand anywhere in the project.
+- **A model that can only pick what the search returned.** The matcher's tool implements `HasSourcesInterface`: the documents it found travel with the answer, and PHP only accepts an id that is among them. The allergens are read from those documents, never from the model.
+- **Hybrid search without writing a query.** The Store component gives a `HybridQuery` (words and meaning) over Meilisearch, and the index is built by its own commands from a CSV file, with a loader, a transformer and a vectorizer declared in YAML.
+- **An agent as the tool of another.** The adapter checks its own proposals with a tool that runs the matcher, so a swap is verified against the reference before the answer is even written.
+- **A remote MCP server as a tool belt, and as a plain client.** One line (`mcp_server: food.openfoodfacts`) gives an agent the tools of the Open Food Facts server; the same connection is injected in PHP to call a tool directly, which is how the product counts stay out of the model's hands.
+
+The pattern that runs through all of them: the model proposes, PHP decides. Symfony AI made that cheap enough to apply everywhere.
 
 ## Reference data
 
 `resources/data/ingredients.csv` is the ingredient reference: a French and English vocabulary (name and plural in each language, parent) and, for each of the 14 EU allergens, whether it is present in every ordinary version (`always`) or only in some products (`depends`).
 
-`make index` builds the index from this file with the commands of the Symfony AI Store component (`ai:store:setup`, `ai:store:clear`, then `ai:store:index ingredients`): its `CsvLoader` reads the rows, and a transformer turns each of them into one document per ingredient, embedded from its names, with its names and allergens stored in the document metadata, so that a search result is all the verdict needs.
+The index is built from this file (`make index` with Docker) with the commands of the Symfony AI Store component (`ai:store:setup`, `ai:store:clear`, then `ai:store:index ingredients`): its `CsvLoader` reads the rows, and a transformer turns each of them into one document per ingredient, embedded from its names, with its names and allergens stored in the document metadata, so that a search result is all the verdict needs.
 
 The French vocabulary comes from [Marmiton](https://www.marmiton.org); the English names and the allergen columns were drafted with a language model and still need a human review. The rows from id 90001 are the free-from substitutes that swaps rely on (rice flour, soy milk, coconut oil...): they were written by hand, with their allergens, from the swaps the agent proposes most.
 
