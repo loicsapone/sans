@@ -49,7 +49,7 @@ final class RecipePageTest extends KernelTestCase
         self::assertSame('example.com · Serves 6 · 1 h 15', $crawler->filter('.recipe__meta')->text());
         self::assertSame('Found in this recipe', $crawler->filter('.card__group')->first()->text());
         self::assertCount(14, $crawler->filter('button.toggle'));
-        self::assertStringContainsString('couldn’t be identified', $crawler->filter('.card__warning')->text());
+        self::assertCount(0, $crawler->filter('.card__warning'));
     }
 
     public function testReadingANewAddressShowsTheRecipeBeforeItsAllergens(): void
@@ -162,6 +162,125 @@ final class RecipePageTest extends KernelTestCase
         $component->call('toggleAllergen', ['allergen' => 'banana']);
 
         self::assertCount(0, $component->render()->crawler()->filter('button[aria-pressed="true"]'));
+    }
+
+    public function testAnUnidentifiedIngredientAsksWhatItContains(): void
+    {
+        $crawler = $this->createLiveComponent(RecipePage::class, ['url' => self::URL])->render()->crawler();
+
+        self::assertCount(1, $crawler->filter('details.declare'));
+        self::assertSame('Not identified', $crawler->filter('.declare__missing')->text());
+        self::assertSame('Add allergens', $crawler->filter('.declare__action')->text());
+        self::assertSame('Which allergens are in zgougou?', $crawler->filter('.declare__question')->text());
+        self::assertCount(15, $crawler->filter('button.chip'));
+        self::assertSame('disclosure', $crawler->filter('details.declare')->attr('data-controller'));
+        self::assertCount(15, $crawler->filter('button.chip[data-action="live#action disclosure#close"]'));
+        self::assertCount(0, $crawler->filter('button.chip[aria-pressed="true"]'));
+        self::assertCount(0, $crawler->filter('.declare__undo'));
+        self::assertCount(0, $crawler->filter('.card__warning'));
+    }
+
+    public function testDeclaringAnAllergenShowsItOnTheIngredientAndLiftsTheWarnings(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+
+        $component->call('declareAllergen', ['ingredient' => 'zgougou', 'allergen' => 'fish']);
+
+        $crawler = $component->render()->crawler();
+        self::assertSame('Fish', $crawler->filter('.declare .ingredient__note')->text());
+        self::assertSame('you told us', $crawler->filter('.declare__told')->text());
+        self::assertSame('Edit', $crawler->filter('.declare__action')->text());
+        self::assertSame('Fish', $crawler->filter('button.chip[aria-pressed="true"]')->text());
+        self::assertStringContainsString('In zgougou', $crawler->filter('.allergen')->reduce(static fn (Crawler $row): bool => str_contains($row->text(), 'Fish'))->text());
+        self::assertCount(0, $crawler->filter('.declare__missing'));
+
+        $component->call('declareAllergen', ['ingredient' => 'zgougou', 'allergen' => 'fish']);
+        $crawler = $component->render()->crawler();
+        self::assertSame('Not identified', $crawler->filter('.declare__missing')->text());
+    }
+
+    public function testDeclaringNoAllergenLiftsTheWarningsUntilTheVisitorTakesItBack(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+
+        $component->call('declareNone', ['ingredient' => 'zgougou']);
+
+        $crawler = $component->render()->crawler();
+        self::assertSame('No allergen', $crawler->filter('.declare .ingredient__note')->text());
+        self::assertSame('None of these', $crawler->filter('button.chip[aria-pressed="true"]')->text());
+        self::assertCount(0, $crawler->filter('.declare__missing'));
+
+        $component->call('undeclare', ['ingredient' => 'zgougou']);
+
+        $crawler = $component->render()->crawler();
+        self::assertCount(1, $crawler->filter('.declare__missing'));
+    }
+
+    public function testAnAvoidedAllergenIsNotSaidFreeWhileAnIngredientIsUnidentified(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+        $component->call('toggleAllergen', ['allergen' => 'fish']);
+        $component->refresh();
+
+        $crawler = $component->render()->crawler();
+        self::assertSame('sans fish', $crawler->filter('.allergen__plain')->reduce(static fn (Crawler $row): bool => str_contains($row->text(), 'fish'))->text());
+        self::assertCount(0, $crawler->filter('.allergen__free'));
+
+        $component->call('declareNone', ['ingredient' => 'zgougou']);
+        $component->refresh();
+
+        self::assertSame('· already free', $component->render()->crawler()->filter('.allergen__free')->text());
+    }
+
+    public function testOnlyAnUnidentifiedIngredientAndAKnownAllergenCanBeDeclared(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+
+        $component->call('declareAllergen', ['ingredient' => 'beurre', 'allergen' => 'fish']);
+        $component->call('declareNone', ['ingredient' => 'beurre']);
+        $component->call('declareNone', ['ingredient' => 'caviar']);
+        $component->call('declareAllergen', ['ingredient' => 'zgougou', 'allergen' => 'banana']);
+
+        $crawler = $component->render()->crawler();
+        $page = $component->component();
+        self::assertInstanceOf(RecipePage::class, $page);
+        self::assertSame([], $page->declared);
+        self::assertCount(0, $crawler->filter('button.chip[aria-pressed="true"]'));
+        self::assertCount(1, $crawler->filter('.declare__missing'));
+    }
+
+    public function testADeclaredIngredientIsSwappedWhenItsAllergenIsAvoided(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+        $component->call('toggleAllergen', ['allergen' => 'fish']);
+        $component->refresh();
+        self::assertCount(0, $component->render()->crawler()->filter('.ingredient__name--swapped'));
+
+        $component->call('declareAllergen', ['ingredient' => 'zgougou', 'allergen' => 'fish']);
+        self::assertSame('Finding a fish-free swap…', $component->render()->crawler()->filter('.ingredient__finding')->text());
+
+        $component->refresh();
+        $crawler = $component->render()->crawler();
+        self::assertSame('Olive oil', $crawler->filter('.ingredient__name--swapped')->text());
+        self::assertSame('was zgougou', $crawler->filter('.ingredient__was')->text());
+
+        $everybody = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+        $everybody->call('toggleAllergen', ['allergen' => 'fish']);
+        self::assertCount(0, $everybody->render()->crawler()->filter('.ingredient__name--swapped'));
+        self::assertCount(1, $everybody->render()->crawler()->filter('details.declare'));
+    }
+
+    public function testReadingAnAddressForgetsWhatWasDeclared(): void
+    {
+        $component = $this->createLiveComponent(RecipePage::class, ['url' => self::URL]);
+        $component->call('declareNone', ['ingredient' => 'zgougou']);
+
+        $component->call('read');
+
+        $page = $component->component();
+        self::assertInstanceOf(RecipePage::class, $page);
+        self::assertSame([], $page->declared);
+        self::assertCount(1, $component->render()->crawler()->filter('.declare__missing'));
     }
 
     public function testReadingAnAddressThatWasAlreadyAnalysedUsesTheStoredAnalysis(): void

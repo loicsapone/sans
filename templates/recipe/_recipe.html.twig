@@ -39,8 +39,44 @@
                             <span class="ingredient__was">was {{ row.swap.was }}</span>
                         {% else %}
                             <span class="ingredient__quantity">{{ row.quantity }}</span>
-                            <span>{{ row.name }}</span>
-                            <span class="ingredient__note">{{ row.note }}</span>
+                            {% if row.unidentified %}
+                                {% set answered = row.unidentified|filter(unknown => not unknown.declared)|length == 0 %}
+                                <details class="declare" id="declare-{{ loop.index0 }}" data-controller="disclosure">
+                                    <summary class="declare__summary">
+                                        <span>{{ row.name }}</span>
+                                        <span class="declare__state">
+                                            {% if answered %}
+                                                <span class="ingredient__note">{{ row.note ?: 'No allergen' }}</span>
+                                                <span class="declare__told">you told us</span>
+                                                <span class="declare__action">Edit</span>
+                                            {% else %}
+                                                {% if row.note %}<span class="ingredient__note">{{ row.note }}</span>{% endif %}
+                                                <span class="declare__missing">Not identified</span>
+                                                <span class="declare__action">Add allergens</span>
+                                            {% endif %}
+                                        </span>
+                                    </summary>
+                                    {% for unknown in row.unidentified %}
+                                        <fieldset class="declare__panel">
+                                            <legend class="declare__question">Which allergens are in {{ unknown.name }}?</legend>
+                                            <div class="declare__choices">
+                                                {% for choice in view.allergenChoices %}
+                                                    <button class="chip" type="button" aria-pressed="{{ choice.value in unknown.allergens ? 'true' : 'false' }}" data-action="live#action disclosure#close" data-live-action-param="declareAllergen" data-live-ingredient-param="{{ unknown.name }}" data-live-allergen-param="{{ choice.value }}">{{ choice.label }}</button>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="declare__choices">
+                                                <button class="chip chip--none" type="button" aria-pressed="{{ unknown.declared and not unknown.allergens ? 'true' : 'false' }}" data-action="live#action disclosure#close" data-live-action-param="declareNone" data-live-ingredient-param="{{ unknown.name }}">None of these</button>
+                                                {% if unknown.declared %}
+                                                    <button class="declare__undo" type="button" data-action="live#action disclosure#close" data-live-action-param="undeclare" data-live-ingredient-param="{{ unknown.name }}">I don’t know</button>
+                                                {% endif %}
+                                            </div>
+                                        </fieldset>
+                                    {% endfor %}
+                                </details>
+                            {% else %}
+                                <span>{{ row.name }}</span>
+                                <span class="ingredient__note">{{ row.note }}</span>
+                            {% endif %}
                             {% if row.failed %}<span class="ingredient__failed">{{ row.failed }}</span>{% endif %}
                         {% endif %}
                         {% if row.mayCarry %}
@@ -87,9 +123,6 @@
             {% if view.swapCount %}
                 <p class="card__summary">{{ view.swapCount }} ingredient{{ view.swapCount == 1 ? '' : 's' }} swapped, {{ view.adaptedStepCount }} step{{ view.adaptedStepCount == 1 ? '' : 's' }} adapted.</p>
             {% endif %}
-            {% if view.unidentifiedCount %}
-                <p class="card__warning" role="status">{{ view.unidentifiedCount }} ingredient{{ view.unidentifiedCount == 1 ? '' : 's' }} couldn’t be identified, so some allergens may be missing.</p>
-            {% endif %}
 
             <p class="card__group">Found in this recipe</p>
             {% for row in view.found %}
@@ -112,11 +145,10 @@
                 <div class="allergen allergen--compact">
                     <div class="allergen__text">
                         {% if row.active %}
-                            <span class="allergen__plain"><span class="allergen__sans">sans </span>{{ row.label|lower }} <span class="allergen__free">· already free</span></span>
+                            <span class="allergen__plain"><span class="allergen__sans">sans </span>{{ row.label|lower }}{% if row.free %} <span class="allergen__free">· already free</span>{% endif %}</span>
                         {% else %}
                             <span class="allergen__plain allergen__plain--idle">{{ row.label }}</span>
                         {% endif %}
-                        {% if row.note %}<div class="allergen__note">{{ row.note }}</div>{% endif %}
                     </div>
                     <twig:AllergenToggle :label="row.label" :pressed="row.active" :busy="row.busy" size="small" data-action="live#action" data-live-action-param="toggleAllergen" :data-live-allergen-param="row.allergen.value"/>
                 </div>

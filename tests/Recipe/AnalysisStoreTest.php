@@ -73,6 +73,18 @@ final class AnalysisStoreTest extends KernelTestCase
         self::assertNull($this->store->find('https://example.com/gratin'));
     }
 
+    public function testAnAdaptationMadeWithDeclaredIngredientsIsKeptApartFromTheOneOfEverybody(): void
+    {
+        $shared = new Adaptation([], [new AdaptedStep('Cuire.')]);
+        $declared = new Adaptation([new Swap(2, [Allergen::Fish], '80 g', 'Olive oil', Role::Fat)], [new AdaptedStep('Cuire.', true)]);
+        $this->store->saveAdaptation('https://example.com/gratin', [Allergen::Fish], $shared);
+        $this->store->saveAdaptation('https://example.com/gratin', [Allergen::Fish], $declared, ['zgougou' => [Allergen::Fish, Allergen::Eggs], 'machin' => []]);
+
+        self::assertSame([], $this->store->findAdaptation('https://example.com/gratin', [Allergen::Fish])?->swaps);
+        self::assertCount(1, $this->store->findAdaptation('https://example.com/gratin', [Allergen::Fish], ['machin' => [], 'zgougou' => [Allergen::Eggs, Allergen::Fish]])->swaps ?? []);
+        self::assertNull($this->store->findAdaptation('https://example.com/gratin', [Allergen::Fish], ['zgougou' => [Allergen::Fish]]));
+    }
+
     public function testUnknownAddressesAreNotFound(): void
     {
         self::assertNull($this->store->find('https://example.com/unknown'));

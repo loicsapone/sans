@@ -38,30 +38,44 @@ final readonly class AnalysisStore
     }
 
     /**
-     * @param list<Allergen> $avoided
+     * @param list<Allergen>                $avoided
+     * @param array<string, list<Allergen>> $declared what the visitor said of the unidentified ingredients: their adaptation is not the one of everybody
      */
-    public function findAdaptation(string $url, array $avoided): ?Adaptation
+    public function findAdaptation(string $url, array $avoided, array $declared = []): ?Adaptation
     {
-        return $this->read($this->adaptationId($url, $avoided), Adaptation::class);
+        return $this->read($this->adaptationId($url, $avoided, $declared), Adaptation::class);
     }
 
     /**
-     * @param list<Allergen> $avoided
+     * @param list<Allergen>                $avoided
+     * @param array<string, list<Allergen>> $declared
      */
-    public function saveAdaptation(string $url, array $avoided, Adaptation $adaptation): void
+    public function saveAdaptation(string $url, array $avoided, Adaptation $adaptation, array $declared = []): void
     {
-        $this->write($this->adaptationId($url, $avoided), $url, $adaptation);
+        $this->write($this->adaptationId($url, $avoided, $declared), $url, $adaptation);
     }
 
     /**
-     * @param list<Allergen> $avoided
+     * @param list<Allergen>                $avoided
+     * @param array<string, list<Allergen>> $declared
      */
-    private function adaptationId(string $url, array $avoided): string
+    private function adaptationId(string $url, array $avoided, array $declared): string
     {
-        $values = array_map(static fn (Allergen $allergen): string => $allergen->value, $avoided);
-        sort($values);
+        $sorted = static function (array $allergens): array {
+            $values = array_column($allergens, 'value');
+            sort($values);
 
-        return sha1($url.'|'.implode(',', $values));
+            return $values;
+        };
+
+        $id = $url.'|'.implode(',', $sorted($avoided));
+        if ([] !== $declared) {
+            $declared = array_map($sorted, $declared);
+            ksort($declared);
+            $id .= '|'.json_encode($declared, \JSON_THROW_ON_ERROR);
+        }
+
+        return sha1($id);
     }
 
     /**

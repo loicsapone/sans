@@ -710,11 +710,6 @@ a:hover {
     color: var(--muted-strong);
 }
 
-.allergen__note {
-    font-size: 12px;
-    color: var(--allergen);
-}
-
 .card__reset {
     min-height: 44px;
     margin-top: 20px;
@@ -853,4 +848,116 @@ a:hover {
 
 .method__shimmer {
     padding-top: 4px;
+}
+
+/* What the visitor says of an ingredient Sans could not identify */
+
+.declare {
+    grid-column: 2 / -1;
+    min-width: 0;
+}
+
+.declare__summary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px 16px;
+    list-style: none;
+    cursor: pointer;
+}
+
+.declare__summary::-webkit-details-marker {
+    display: none;
+}
+
+.declare__state {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 4px 8px;
+    margin-left: auto;
+    font-size: 12px;
+}
+
+.declare__missing,
+.declare__told {
+    color: var(--muted);
+}
+
+.declare__action {
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.declare__summary:hover .declare__action {
+    color: var(--accent-hover);
+}
+
+.declare__panel {
+    margin: 12px 0 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.declare__question {
+    padding: 0 4px;
+    font-size: 13px;
+    color: var(--muted-strong);
+}
+
+.declare__choices {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.declare__choices + .declare__choices {
+    margin-top: 12px;
+}
+
+.chip {
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.chip:hover {
+    border-color: var(--muted);
+}
+
+.chip[aria-pressed="true"] {
+    border-color: var(--allergen);
+    background: var(--allergen);
+    font-weight: 600;
+    color: #fff;
+}
+
+.chip--none[aria-pressed="true"] {
+    border-color: var(--accent);
+    background: var(--accent);
+}
+
+.declare__undo {
+    min-height: 36px;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    color: var(--muted-strong);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
 }

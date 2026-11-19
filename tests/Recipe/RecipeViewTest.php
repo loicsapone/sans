@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Recipe;
 
+use App\Domain\AllergenVerdictEngine;
 use App\Enum\Allergen;
 use App\Enum\Role;
 use App\Recipe\Adaptation;
@@ -68,12 +69,45 @@ final class RecipeViewTest extends TestCase
         self::assertSame('May be in bouillon', $status['Gluten']);
     }
 
-    public function testAnAllergenThatCannotBeRuledOutIsNeverPresentedAsFree(): void
+    public function testOnlyAnUnidentifiedIngredientAsksTheVisitorWhatItContains(): void
     {
-        $rows = array_column($this->view()->notDetected(), null, 'label');
+        $rows = $this->view()->ingredients();
 
-        self::assertSame('Couldn’t identify: zgougou', $rows['Fish']['note']);
-        self::assertSame(1, $this->view()->unidentifiedCount());
+        self::assertSame([], $rows[0]['unidentified']);
+        self::assertSame([], $rows[1]['unidentified']);
+        self::assertSame([['name' => 'zgougou', 'declared' => false, 'allergens' => []]], $rows[2]['unidentified']);
+        self::assertCount(14, $this->view()->allergenChoices());
+        self::assertSame(['value' => 'gluten', 'label' => 'Gluten'], $this->view()->allergenChoices()[0]);
+    }
+
+    public function testWhatTheVisitorDeclaredIsShownOnTheIngredientAndLiftsTheWarnings(): void
+    {
+        $analysis = Analyses::gratin()->withDeclared(['zgougou' => [Allergen::Fish]], new AllergenVerdictEngine());
+        $view = RecipeView::of($analysis, 'https://www.example.com/recipes/gratin', declared: ['zgougou']);
+
+        self::assertSame('Fish', $view->ingredients()[2]['note']);
+        self::assertSame([['name' => 'zgougou', 'declared' => true, 'allergens' => ['fish']]], $view->ingredients()[2]['unidentified']);
+        self::assertSame('In zgougou', array_column($view->found(), 'status', 'label')['Fish']);
+        self::assertNotContains('Fish', array_column($view->notDetected(), 'label'));
+    }
+
+    public function testAnAllergenIsOnlyPresentedAsFreeOnceEveryIngredientIsKnown(): void
+    {
+        self::assertFalse(array_column($this->view([Allergen::Fish])->notDetected(), 'free', 'label')['Fish']);
+
+        $analysis = Analyses::gratin()->withDeclared(['zgougou' => []], new AllergenVerdictEngine());
+        $view = RecipeView::of($analysis, 'https://www.example.com/recipes/gratin', [Allergen::Fish], declared: ['zgougou']);
+
+        self::assertTrue(array_column($view->notDetected(), 'free', 'label')['Fish']);
+    }
+
+    public function testAnIngredientDeclaredWithoutAllergenStaysEditable(): void
+    {
+        $analysis = Analyses::gratin()->withDeclared(['zgougou' => []], new AllergenVerdictEngine());
+        $view = RecipeView::of($analysis, 'https://www.example.com/recipes/gratin', declared: ['zgougou']);
+
+        self::assertSame('', $view->ingredients()[2]['note']);
+        self::assertSame([['name' => 'zgougou', 'declared' => true, 'allergens' => []]], $view->ingredients()[2]['unidentified']);
     }
 
     public function testBeforeTheAnalysisOnlyTheTextOfThePageIsShown(): void
@@ -88,7 +122,6 @@ final class RecipeViewTest extends TestCase
         self::assertSame(['Mélanger.', 'Cuire.'], array_column($view->steps(), 'text'));
         self::assertSame([], $view->found());
         self::assertSame([], $view->notDetected());
-        self::assertSame(0, $view->unidentifiedCount());
         self::assertFalse($this->view()->isPending());
     }
 

@@ -13,6 +13,7 @@ final readonly class RecipeView
 {
     /**
      * @param list<Allergen> $avoided
+     * @param list<string>   $declared
      */
     private function __construct(
         private Recipe $recipe,
@@ -22,15 +23,17 @@ final readonly class RecipeView
         private ?Adaptation $adaptation = null,
         private bool $original = false,
         private bool $adapting = false,
+        private array $declared = [],
     ) {
     }
 
     /**
      * @param list<Allergen> $avoided
+     * @param list<string>   $declared the names of the ingredients whose allergens come from the visitor, already part of the analysis
      */
-    public static function of(Analysis $analysis, string $url, array $avoided = [], ?Adaptation $adaptation = null, bool $original = false, bool $adapting = false): self
+    public static function of(Analysis $analysis, string $url, array $avoided = [], ?Adaptation $adaptation = null, bool $original = false, bool $adapting = false, array $declared = []): self
     {
-        return new self($analysis->recipe, $url, $analysis, $avoided, $adaptation, $original, $adapting);
+        return new self($analysis->recipe, $url, $analysis, $avoided, $adaptation, $original, $adapting, array_map(strval(...), $declared));
     }
 
     public static function withoutAnalysis(Recipe $recipe, string $url): self
@@ -89,7 +92,7 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, role: string, was: string}|null, pending: string|null, failed: string|null, mayCarry: bool}>
+     * @return list<array{quantity: string, name: string, note: string, swap: array{quantity: string, name: string, role: string, was: string}|null, pending: string|null, failed: string|null, mayCarry: bool, unidentified: list<array{name: string, declared: bool, allergens: list<string>}>}>
      */
     public function ingredients(): array
     {
@@ -98,7 +101,7 @@ final readonly class RecipeView
                 // the analysis has not split the line yet: a leading amount is enough to keep the columns in place
                 preg_match('/^\s*((?:\d+(?:[.,\/]\d+)?|[½⅓⅔¼¾])(?:\s*(?:-|–|à|to)\s*\d+(?:[.,\/]\d+)?)?(?:\s*(?:kg|mg|g|dl|cl|ml|l|oz|lbs?|tbsp|tsp|cups?|c\. à (?:soupe|café)|cuillères? à (?:soupe|café))(?=\s))?)\s+(.+)$/iu', $line, $parts);
 
-                return ['quantity' => $parts[1] ?? '', 'name' => $parts[2] ?? $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => null, 'mayCarry' => false];
+                return ['quantity' => $parts[1] ?? '', 'name' => $parts[2] ?? $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => null, 'mayCarry' => false, 'unidentified' => []];
             }, $this->recipe->ingredients);
         }
 
@@ -132,6 +135,7 @@ final readonly class RecipeView
                 'failed' => $failed[$position] ?? null,
                 // only the label of a real product can tell: Open Food Facts is asked about them
                 'mayCarry' => \in_array(Certainty::Depends, $analysis->linesCarrying($this->avoided)[$position] ?? [], true),
+                'unidentified' => $this->unidentified($line),
             ];
         }
 
@@ -170,7 +174,7 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, note: string|null}>
+     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, free: bool}>
      */
     public function found(): array
     {
@@ -178,7 +182,7 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, note: string|null}>
+     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, free: bool}>
      */
     public function notDetected(): array
     {
@@ -195,13 +199,12 @@ final readonly class RecipeView
         return \count(array_filter($this->adapted()->steps ?? [], static fn (AdaptedStep $step): bool => $step->adapted));
     }
 
-    public function unidentifiedCount(): int
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public function allergenChoices(): array
     {
-        if (null === $this->analysis) {
-            return 0;
-        }
-
-        return \count(array_filter($this->analysis->ingredients, static fn (?Ingredient $ingredient): bool => null === $ingredient));
+        return array_map(static fn (Allergen $allergen): array => ['value' => $allergen->value, 'label' => $allergen->label()], Allergen::cases());
     }
 
     private function adapted(): ?Adaptation
@@ -215,7 +218,7 @@ final readonly class RecipeView
     }
 
     /**
-     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, note: string|null}>
+     * @return list<array{allergen: Allergen, label: string, active: bool, swapped: bool, busy: bool, status: string, free: bool}>
      */
     private function allergens(): array
     {
@@ -258,7 +261,8 @@ final readonly class RecipeView
                     Verdict::DependsOnProduct === $verdict->verdict => $active ? 'May be in '.$sources.' · check the label' : 'May be in '.$sources,
                     default => 'already free',
                 },
-                'note' => Verdict::Incomplete === $verdict->verdict ? 'Couldn’t identify: '.$sources : null,
+                // an ingredient nobody could identify may still carry it
+                'free' => Verdict::NotDetected === $verdict->verdict,
             ];
         }
 
@@ -288,6 +292,23 @@ final readonly class RecipeView
         }
 
         return array_values(array_filter($names));
+    }
+
+    /**
+     * @return list<array{name: string, declared: bool, allergens: list<string>}> the names of the line the reference does not know, with what the visitor said of them
+     */
+    private function unidentified(IngredientLine $line): array
+    {
+        $rows = [];
+        foreach ($line->names as $name) {
+            $ingredient = $this->analysis?->ingredients[$name] ?? null;
+            $declared = \in_array($name, $this->declared, true);
+            if (null === $ingredient || $declared) {
+                $rows[] = ['name' => $name, 'declared' => $declared, 'allergens' => array_keys($ingredient->certainties ?? [])];
+            }
+        }
+
+        return $rows;
     }
 
     private function quantity(IngredientLine $line): string

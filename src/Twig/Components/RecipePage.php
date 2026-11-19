@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig\Components;
 
+use App\Domain\AllergenVerdictEngine;
 use App\Enum\Allergen;
 use App\Recipe\Analysis;
 use App\Recipe\AnalysisFailed;
@@ -34,6 +35,10 @@ final class RecipePage
     #[LiveProp]
     public array $avoided = [];
 
+    /** @var array<string, list<string>> the allergen values the visitor declared for an ingredient Sans could not identify, an empty list when they said it has none */
+    #[LiveProp]
+    public array $declared = [];
+
     /** @var 'yours'|'original' */
     #[LiveProp]
     public string $version = 'yours';
@@ -63,6 +68,7 @@ final class RecipePage
         private readonly AnalysisStore $store,
         private readonly RecipeAnalyzer $analyzer,
         private readonly RecipeAdapter $adapter,
+        private readonly AllergenVerdictEngine $engine,
     ) {
     }
 
@@ -70,7 +76,7 @@ final class RecipePage
     public function read(): void
     {
         $this->url = mb_trim($this->url);
-        $this->avoided = [];
+        $this->avoided = $this->declared = [];
         $this->version = 'yours';
         $this->adaptationFailed = false;
         $this->stage = $this->recipe = $this->failedStage = $this->failedMessage = null;
@@ -126,11 +132,11 @@ final class RecipePage
             return;
         }
 
-        $analysis = $this->analysis();
+        $analysis = $this->declaredAnalysis();
         try {
             if (null !== $analysis) {
                 $avoided = $this->avoidedAllergens();
-                $this->store->saveAdaptation($this->url, $avoided, $this->adapter->adapt($analysis, $avoided));
+                $this->store->saveAdaptation($this->url, $avoided, $this->adapter->adapt($analysis, $avoided), $this->declaredAllergens());
             }
         } catch (PlatformException|AgentException|HttpException) {
             $this->adaptationFailed = true;
@@ -154,13 +160,43 @@ final class RecipePage
         $this->avoided = \in_array($choice->value, $this->avoided, true)
             ? array_values(array_diff($this->avoided, [$choice->value]))
             : [...$this->avoided, $choice->value];
-        $this->version = 'yours';
-        $this->adaptationFailed = false;
+        $this->adaptWhenMissing();
+    }
 
-        $avoided = $this->avoidedAllergens();
-        if ([] !== $avoided && null !== $this->analysis() && null === $this->store->findAdaptation($this->url, $avoided)) {
-            $this->stage = 'adapting';
-            $this->justToggled = true;
+    #[LiveAction]
+    public function declareAllergen(#[LiveArg] string $ingredient, #[LiveArg] string $allergen): void
+    {
+        $choice = Allergen::tryFrom($allergen);
+        if (null === $choice || !$this->canDeclare($ingredient)) {
+            return;
+        }
+
+        $current = $this->declared[$ingredient] ?? [];
+        $this->declared[$ingredient] = \in_array($choice->value, $current, true)
+            ? array_values(array_diff($current, [$choice->value]))
+            : [...$current, $choice->value];
+        // unticking the last allergen is not saying the ingredient has none
+        if ([] === $this->declared[$ingredient]) {
+            unset($this->declared[$ingredient]);
+        }
+        $this->adaptWhenMissing();
+    }
+
+    #[LiveAction]
+    public function declareNone(#[LiveArg] string $ingredient): void
+    {
+        if ($this->canDeclare($ingredient)) {
+            $this->declared[$ingredient] = [];
+            $this->adaptWhenMissing();
+        }
+    }
+
+    #[LiveAction]
+    public function undeclare(#[LiveArg] string $ingredient): void
+    {
+        if ($this->canDeclare($ingredient)) {
+            unset($this->declared[$ingredient]);
+            $this->adaptWhenMissing();
         }
     }
 
@@ -181,15 +217,15 @@ final class RecipePage
 
     public function view(): ?RecipeView
     {
-        $analysis = $this->analysis();
+        $analysis = $this->declaredAnalysis();
         if (null === $analysis) {
             return $this->isAnalysing() && null !== $this->recipe ? RecipeView::withoutAnalysis($this->recipe, $this->url) : null;
         }
 
         $avoided = $this->avoidedAllergens();
-        $adaptation = [] === $avoided || $this->isAdapting() ? null : $this->store->findAdaptation($this->url, $avoided);
+        $adaptation = [] === $avoided || $this->isAdapting() ? null : $this->store->findAdaptation($this->url, $avoided, $this->declaredAllergens());
 
-        return RecipeView::of($analysis, $this->url, $avoided, $adaptation, 'original' === $this->version, $this->isAdapting());
+        return RecipeView::of($analysis, $this->url, $avoided, $adaptation, 'original' === $this->version, $this->isAdapting(), array_keys($this->declared));
     }
 
     /**
@@ -223,6 +259,42 @@ final class RecipePage
     private function avoidedAllergens(): array
     {
         return array_values(array_filter(array_map(Allergen::tryFrom(...), $this->avoided)));
+    }
+
+    /**
+     * @return array<string, list<Allergen>>
+     */
+    private function declaredAllergens(): array
+    {
+        return array_map(static fn (array $values): array => array_values(array_filter(array_map(Allergen::tryFrom(...), $values))), $this->declared);
+    }
+
+    private function canDeclare(string $ingredient): bool
+    {
+        $analysis = $this->analysis();
+
+        return !$this->isAnalysing() && !$this->isAdapting()
+            && null !== $analysis && \array_key_exists($ingredient, $analysis->ingredients) && null === $analysis->ingredients[$ingredient];
+    }
+
+    /**
+     * The avoided allergens or the declared ingredients have changed: the swaps are found by the next render unless they are already known.
+     */
+    private function adaptWhenMissing(): void
+    {
+        $this->version = 'yours';
+        $this->adaptationFailed = false;
+
+        $avoided = $this->avoidedAllergens();
+        if ([] !== $avoided && null !== $this->analysis() && null === $this->store->findAdaptation($this->url, $avoided, $this->declaredAllergens())) {
+            $this->stage = 'adapting';
+            $this->justToggled = true;
+        }
+    }
+
+    private function declaredAnalysis(): ?Analysis
+    {
+        return $this->analysis()?->withDeclared($this->declaredAllergens(), $this->engine);
     }
 
     private function analysis(): ?Analysis

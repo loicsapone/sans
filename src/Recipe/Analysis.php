@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Recipe;
 
 use App\Domain\AllergenVerdict;
+use App\Domain\AllergenVerdictEngine;
 use App\Domain\Ingredient;
 use App\Enum\Allergen;
 use App\Enum\Certainty;
@@ -24,6 +25,23 @@ final readonly class Analysis
         public array $verdicts,
         public array $durations,
     ) {
+    }
+
+    /**
+     * @param array<string, list<Allergen>> $declared what the visitor says an ingredient contains, by ingredient name
+     */
+    public function withDeclared(array $declared, AllergenVerdictEngine $engine): self
+    {
+        $ingredients = $this->ingredients;
+        foreach ($declared as $name => $allergens) {
+            $name = (string) $name;
+            // the visitor only speaks for what the reference does not know
+            if (\array_key_exists($name, $ingredients) && null === $ingredients[$name]) {
+                $ingredients[$name] = new Ingredient(0, $name, $name, array_fill_keys(array_column($allergens, 'value'), Certainty::Always));
+            }
+        }
+
+        return $ingredients === $this->ingredients ? $this : new self($this->recipe, $this->lines, $ingredients, $engine->evaluate($ingredients), $this->durations);
     }
 
     /**
