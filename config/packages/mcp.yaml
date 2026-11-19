@@ -1,4 +1,20 @@
 mcp:
+    servers:
+        sans:
+            version: 1.0.0
+            description: Which of the 14 EU allergens a recipe contains, and how to cook it without them.
+            instructions: |
+                Sans reads the recipe of a public web page. analyze_recipe lists the allergens it contains and
+                adapt_recipe proposes swaps to avoid some of them. The verdicts come from a reference list of
+                ingredients, they are a help and not a guarantee: for an allergy, the cook must read the labels.
+            transports:
+                stdio: true
+                http: true
+            http:
+                path: /mcp
+            registry:
+                tools: ['App\Mcp\']
+
     clients:
         food:
             request_timeout: 20

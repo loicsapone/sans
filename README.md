@@ -61,6 +61,7 @@ Sans is five agents, one vector store and one MCP connection, and almost all of 
 - **A model that can only pick what the search returned.** The matcher's tool implements `HasSourcesInterface`: the documents it found travel with the answer, and PHP only accepts an id that is among them. The allergens are read from those documents, never from the model.
 - **Hybrid search without writing a query.** The Store component gives a `HybridQuery` (words and meaning) over Meilisearch, and the index is built by its own commands from a CSV file, with a loader, a transformer and a vectorizer declared in YAML.
 - **An agent as the tool of another.** The adapter checks its own proposals with a tool that runs the matcher, so a swap is verified against the reference before the answer is even written.
+- **MCP in both directions.** Sans is a server too: three tools, one class, a few lines of YAML (see below).
 - **A remote MCP server as a tool belt, and as a plain client.** One line (`mcp_server: food.openfoodfacts`) gives an agent the tools of the Open Food Facts server; the same connection is injected in PHP to call a tool directly, which is how the product counts stay out of the model's hands.
 
 The pattern that runs through all of them: the model proposes, PHP decides. Symfony AI made that cheap enough to apply everywhere.
@@ -96,6 +97,35 @@ For an ingredient that only *may* carry an avoided allergen, Sans is a client of
 An agent (`ai.agent.labels`) gets the tools of the remote server (`mcp_server: food.openfoodfacts` in `config/packages/ai.yaml`, the connection is in `config/packages/mcp.yaml`) and finds the category of the ingredient in the Open Food Facts taxonomy. The counts are then asked to the server from PHP, through the same MCP connection: the model picks a category, it never writes a number. The sentence is a Live component of its own (`ProductLabel`) that the recipe page loads after itself (`loading="defer"`): the lookup starts when the allergen is tapped and runs next to the swaps, without holding them back. What was found is cached for a week.
 
 It is a help to choose a product, not a verdict: Open Food Facts is filled in by volunteers, many products have no allergen entered, and the category the agent picks can change from one run to the next. The server is a public one (`OPENFOODFACTS_MCP_URL`) with a small budget of searches; when it does not answer, the page only asks to read the label. Finding the categories takes about 10 seconds, sometimes 20; the adapted recipe does not wait for it.
+
+## Sans as an MCP server
+
+Sans is also an MCP server, so that an assistant can ask it the same questions as the page. It is declared in `config/packages/mcp.yaml` (`servers.sans`) and its three tools are the methods of one class, `App\Mcp\RecipeTools`, which calls the services the page uses:
+
+| Tool | What it does |
+|---|---|
+| `analyze_recipe` | Reads the recipe of a web page: its ingredient lines with the allergens each one carries, and a verdict for each of the 14 allergens |
+| `adapt_recipe` | Gives the swaps and the rewritten steps to cook that recipe without the given allergens |
+| `check_ingredients` | Looks up ingredient names in the reference and returns their allergens |
+
+Analyses and adaptations are shared with the page: a recipe analysed on one side is shown at once on the other.
+
+Over HTTP, the endpoint is `/mcp` on the address of the app (http://127.0.0.1:8000/mcp with the Symfony CLI). Over STDIO, the server is a command:
+
+```json
+{
+    "mcpServers": {
+        "sans": {
+            "command": "sh",
+            "args": ["-c", "cd /path/to/sans && exec symfony console mcp:server"]
+        }
+    }
+}
+```
+
+With Docker only, replace the command with `docker compose exec -T php bin/console mcp:server`. `bin/console debug:mcp` lists the tools.
+
+The endpoint has no authentication and each call costs model requests: it only answers requests made to `localhost` (the DNS rebinding protection of the SDK, `http.allowed_hosts`), and it must stay that way unless it is put behind an authentication.
 
 ## Symfony AI: what got in the way
 

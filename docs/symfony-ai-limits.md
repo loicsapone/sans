@@ -16,6 +16,7 @@ Notes taken while building Sans on `symfony/ai` 1.0.0-BETA1. Each entry says wha
 `Store::query()` sends neither `limit` nor anything read from `$options` besides `semanticRatio`, and always asks for `retrieveVectors`. Each search returns Meilisearch's default 20 hits, each with its 1024 floats, where Sans keeps 5.
 
 - In Sans: `array_slice()` on the results (`IngredientSearch`).
+- Since then: `limit` is read by every store on the main branch ([#2865](https://github.com/symfony/ai/pull/2865), after BETA1). `retrieveVectors` is still always asked for.
 - Fix: read `limit` (and `retrieveVectors`) from the options, the way other bridges read theirs:
 
 ```php
@@ -96,7 +97,7 @@ The `adapter` agent checks its swaps with a tool that runs the `matcher` agent. 
 
 `ExecutionInterface` can stream a structured answer (`asStreamedObject()`, `Progress` updates on tool calls). Sans does not use it: a swap must not be shown before the server has checked it against the reference, so there is little to show early. The page renders twice instead (the recipe, then its allergens) with a Live component polling once.
 
-## MCP client
+## MCP
 
 Sans uses the tools of a remote MCP server (Open Food Facts) from an agent, with `symfony/mcp-bundle` 0.15 and `symfony/ai-mcp-tool`.
 
@@ -104,13 +105,15 @@ Sans uses the tools of a remote MCP server (Open Food Facts) from an agent, with
 
 Installing the bundle to use its client adds an MCP *server* to the application: a `/mcp` route and a `servers.default` entry exposing every MCP service.
 
-- In Sans: `config/routes/mcp.yaml` removed, `config/packages/mcp.yaml` rewritten with only `clients`.
+- In Sans: the `default` server was removed when only the client was needed. The server Sans has now (`servers.sans`) is declared by hand and only exposes the tools of `App\Mcp\`.
+- Fix: a recipe that leaves both sides commented out, or two recipes.
 
 ### A PSR-17 implementation is needed, and nothing says so before the first call
 
 The HTTP transport needs PSR-17 factories. Composer installs the bundle without one, the container builds, and the first tool call fails with "No PSR-17 request factory found".
 
 - In Sans: `composer require nyholm/psr7`.
+- Since then: fixed on the main branch ([#2828](https://github.com/symfony/ai/pull/2828), after the 0.15.0 of the bundle).
 - Fix: suggest it in `composer.json`, or fail when the container is built.
 
 ### All the tools of the server, or none
