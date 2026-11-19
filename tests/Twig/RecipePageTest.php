@@ -62,7 +62,8 @@ final class RecipePageTest extends KernelTestCase
         self::assertSame('Gratin dauphinois', $crawler->filter('h1')->text());
         self::assertSame('93.184.216.34 · Serves 6 · 1 h 15', $crawler->filter('.recipe__meta')->text());
         self::assertCount(4, $crawler->filter('li.ingredient--pending'));
-        self::assertStringContainsString('1 kg de pommes de terre', $crawler->filter('li.ingredient--pending')->first()->text());
+        self::assertSame('1 kg', $crawler->filter('li.ingredient--pending .ingredient__quantity')->first()->text());
+        self::assertStringContainsString('de pommes de terre', $crawler->filter('li.ingredient--pending')->first()->text());
         self::assertCount(2, $crawler->filter('.method__step'));
         self::assertSame('Checking the 14 allergens…', $crawler->filter('.card__pending')->text());
         self::assertCount(0, $crawler->filter('button.toggle'));

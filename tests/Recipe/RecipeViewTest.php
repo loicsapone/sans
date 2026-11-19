@@ -82,7 +82,8 @@ final class RecipeViewTest extends TestCase
 
         self::assertTrue($view->isPending());
         self::assertSame('example.com · Serves 6 · 1 h 15', $view->meta());
-        self::assertSame(['100 g de beurre', '1 cube de bouillon', 'du zgougou'], array_column($view->ingredients(), 'name'));
+        self::assertSame(['100 g', '1', ''], array_column($view->ingredients(), 'quantity'));
+        self::assertSame(['de beurre', 'cube de bouillon', 'du zgougou'], array_column($view->ingredients(), 'name'));
         self::assertSame(['', '', ''], array_column($view->ingredients(), 'note'));
         self::assertSame(['Mélanger.', 'Cuire.'], array_column($view->steps(), 'text'));
         self::assertSame([], $view->found());

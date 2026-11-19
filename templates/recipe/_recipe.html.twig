@@ -16,6 +16,7 @@
             {% for row in view.ingredients %}
                 {% if view.pending %}
                     <li class="ingredient ingredient--pending">
+                        <span class="ingredient__quantity">{{ row.quantity }}</span>
                         <span>{{ row.name }}</span>
                         <span class="ingredient__note" aria-hidden="true"><span class="shimmer shimmer--note"></span></span>
                     </li>

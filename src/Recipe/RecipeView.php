@@ -94,7 +94,12 @@ final readonly class RecipeView
     public function ingredients(): array
     {
         if (null === $this->analysis) {
-            return array_map(static fn (string $line): array => ['quantity' => '', 'name' => $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => null, 'mayCarry' => false], $this->recipe->ingredients);
+            return array_map(static function (string $line): array {
+                // the analysis has not split the line yet: a leading amount is enough to keep the columns in place
+                preg_match('/^\s*((?:\d+(?:[.,\/]\d+)?|[½⅓⅔¼¾])(?:\s*(?:-|–|à|to)\s*\d+(?:[.,\/]\d+)?)?(?:\s*(?:kg|mg|g|dl|cl|ml|l|oz|lbs?|tbsp|tsp|cups?|c\. à (?:soupe|café)|cuillères? à (?:soupe|café))(?=\s))?)\s+(.+)$/iu', $line, $parts);
+
+                return ['quantity' => $parts[1] ?? '', 'name' => $parts[2] ?? $line, 'note' => '', 'swap' => null, 'pending' => null, 'failed' => null, 'mayCarry' => false];
+            }, $this->recipe->ingredients);
         }
 
         $analysis = $this->analysis;
