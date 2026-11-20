@@ -1,0 +1,4 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$comment": "Accepts anything: config/schema.json wrongly types the name-keyed maps of the ai and mcp bundles as lists."
+}

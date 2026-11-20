@@ -1,3 +1,4 @@
+# $schema=../schema-lax.json
 mcp:
     servers:
         sans:
