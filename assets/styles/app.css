@@ -524,25 +524,39 @@ a:hover {
     list-style: none;
 }
 
+.ingredients {
+    display: grid;
+    grid-template-columns: minmax(3rem, max-content) minmax(0, 1fr) auto;
+    column-gap: 16px;
+}
+
+/* The rows share the columns of the list, so the quantity column is as wide as the longest quantity */
 .ingredient {
     display: grid;
-    grid-template-columns: 88px minmax(0, 1fr) auto;
-    gap: 16px;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
     align-items: baseline;
     padding: 14px 0;
     border-bottom: 1px solid var(--divider);
 }
 
 @media (max-width: 600px) {
-    .ingredient {
-        grid-template-columns: 76px minmax(0, 1fr) auto;
-        gap: 12px;
+    .ingredients {
+        column-gap: 12px;
     }
 }
 
 .ingredient__quantity {
+    max-width: 10rem;
     color: var(--muted);
     text-align: right;
+    text-wrap: balance;
+}
+
+@media (max-width: 600px) {
+    .ingredient__quantity {
+        max-width: 7rem;
+    }
 }
 
 .ingredient__quantity--swapped {
@@ -575,10 +589,10 @@ a:hover {
 }
 
 .ingredient__was {
+    max-width: 11rem;
     font-size: 13px;
     color: var(--muted);
     text-align: right;
-    white-space: nowrap;
 }
 
 .method__step {
