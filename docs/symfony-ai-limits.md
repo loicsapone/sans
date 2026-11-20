@@ -9,14 +9,14 @@ Notes taken while building Sans on `symfony/ai` 1.0.0-BETA1. Each entry says wha
 `composer require symfony/ai-meilisearch-store` adds a store configured with `host`, but the bundle expects `endpoint`: the container fails to build right after the install.
 
 - In Sans: renamed by hand in `config/packages/ai.yaml`.
-- Fix: one word in the recipe.
+- Fix: one word in the recipe ([symfony/recipes#1632](https://github.com/symfony/recipes/pull/1632)).
 
 ### No way to ask for fewer results
 
 `Store::query()` sends neither `limit` nor anything read from `$options` besides `semanticRatio`, and always asks for `retrieveVectors`. Each search returns Meilisearch's default 20 hits, each with its 1024 floats, where Sans keeps 5.
 
 - In Sans: `array_slice()` on the results (`IngredientSearch`).
-- Since then: `limit` is read by every store on the main branch ([#2865](https://github.com/symfony/ai/pull/2865), after BETA1). `retrieveVectors` is still always asked for.
+- Since then: `limit` is read by every store on the main branch ([#2865](https://github.com/symfony/ai/pull/2865), after BETA1). `retrieveVectors` is still always asked for ([#3023](https://github.com/symfony/ai/issues/3023), [PR #3026](https://github.com/symfony/ai/pull/3026)).
 - Fix: read `limit` (and `retrieveVectors`) from the options, the way other bridges read theirs:
 
 ```php
@@ -62,7 +62,7 @@ A document gets the text of a single column, the metadata columns are copied one
 `DocumentProcessor` embeds and stores the documents by chunks of `$options['chunk_size'] ?? 50`, and the option can only be given in PHP, to `index()`. `ai:store:index` calls `index()` without options and `ai.indexer.*` has no node for them. The indexer cannot be decorated to add it either: the command refuses anything that is not a `SourceIndexer` or a `ConfiguredSourceIndexer`, and both are final.
 
 - In Sans: the default is lived with, 44 embedding requests for the 2 173 ingredients where chunks of 200 would take 11 (53 seconds instead of 37). The alternative was a command of our own calling `index()` with the option, dropped to keep the native ones.
-- Fix: an `options` node under `ai.indexer.*`, or `--option` on the command as `ai:store:setup` has.
+- Fix: an `options` node under `ai.indexer.*`, or `--option` on the command as `ai:store:setup` has ([#3024](https://github.com/symfony/ai/issues/3024)).
 
 ### Nothing to hook a rebuild on
 
@@ -120,7 +120,7 @@ The HTTP transport needs PSR-17 factories. Composer installs the bundle without 
 
 `tools: [{ mcp_server: food.openfoodfacts }]` gives the agent the four tools of the server. The only option is a `prefix` for their names: there is no way to keep one tool, so the prompt has to say "never call another tool".
 
-- Fix: an `only` (or `exclude`) list next to `prefix`.
+- Fix: an `only` (or `exclude`) list next to `prefix` ([#3025](https://github.com/symfony/ai/issues/3025), [PR #3027](https://github.com/symfony/ai/pull/3027)).
 
 ### Calling a tool without an agent works well
 
